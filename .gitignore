@@ -1,0 +1,10 @@
+/target
+
+# macOS files
+.DS_Store
+
+# VSCode files
+.vscode/
+
+# JetBrains IDE files
+.idea/

@@ -1,0 +1,13 @@
+[package]
+name = "advent-of-rust-2022"
+description = "Advent of Code 2022"
+authors = ["Erik Rogers <ewrogers@gmail.com>"]
+homepage = "https://adventofcode.com/2022"
+repository = "https://github.com/ewrogers/advent-of-rust-2022"
+readme = "README.md"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+keywords = ["advent-of-code"]
+
+[dependencies]
