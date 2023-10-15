@@ -1,8 +1,8 @@
-# Advent of Rust 2022
+# 🎄 Advent of Rust 2022
 
-The [Advent of Code 2022](https://adventofcode.com/2022) code challenges, written in Rust.
+The [Advent of Code 2022](https://adventofcode.com/2022) code challenges, written in Rust 🦀.
 
-## Getting Started
+## ⭐️ Getting Started
 
 You can clone the repository to run the solutions:
 
@@ -15,12 +15,12 @@ $ cargo run --bin day1
 
 Each daily challenge is separated into a separate binary within `src/bin`.
 
-## Puzzle Inputs
+## 🧩 Puzzle Inputs
 
 Each puzzle input is located within the [data](./data) folder, named by the day.
 
 Ex: `data/day1_input.txt`
 
-## Single File Solutions
+## 📄 Single File Solutions
 
 For the sake of simplicity, all code related to a single day puzzle is contained within a single file.
