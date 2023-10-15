@@ -136,8 +136,8 @@ fn calc_score(their_shape: &Shape, your_shape: &Shape) -> u32 {
 // Determines the outcome of a round based on what shapes were played
 fn determine_outcome(their_shape: &Shape, your_shape: &Shape) -> Outcome {
     match (their_shape, your_shape) {
-        _ if their_shape == your_shape => Draw,
-        _ if a_beats_b(your_shape, their_shape) => Win,
+        (them, you) if them == you => Draw,
+        (them, you) if a_beats_b(you, them) => Win,
         _ => Loss,
     }
 }
