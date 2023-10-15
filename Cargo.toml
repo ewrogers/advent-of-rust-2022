@@ -8,6 +8,6 @@ readme = "README.md"
 license = "MIT"
 version = "0.1.0"
 edition = "2021"
-keywords = ["advent-of-code"]
+keywords = ["advent-of-code", "advent-of-code-2022"]
 
 [dependencies]
