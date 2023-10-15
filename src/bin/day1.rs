@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let reader = BufReader::new(file);
 
     // Storing each elf as a number of total calories
-    let mut elves: Vec<u32> = vec![];
+    let mut elves: Vec<u32> = Vec::with_capacity(1000);
     let mut calories: u32 = 0;
 
     for line in reader.lines() {
@@ -35,13 +35,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Since our elves are sorted, we can grab the first for top calories
     let max_calories = elves.first().unwrap_or(&0);
-    println!("[Part I] The top elf has {} calories", max_calories);
+    println!("[Part I] The top elf has {max_calories} calories");
 
     // Take the top three elves and sum their calories together
     let top_three_sum: u32 = elves.iter().take(3).sum();
-    println!(
-        "[Part II] The top three elves have a total of {} calories",
-        top_three_sum
-    );
+    println!("[Part II] The top three elves have a total of {top_three_sum} calories");
     Ok(())
 }
