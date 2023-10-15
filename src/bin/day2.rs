@@ -55,7 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let line = line.unwrap();
 
         // Attempt to split into two column values, skip if invalid line
-        let (them, you) = match line.split_once(" ") {
+        let (them, you) = match line.split_once(' ') {
             Some(tuple) => tuple,
             _ => {
                 println!("Invalid line: {}", &line);
