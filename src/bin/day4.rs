@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let line = match line {
             Ok(line) if line.is_empty() => continue,
             Ok(line) => line,
-            _ => break,
+            Err(_) => break,
         };
 
         // Attempt to split into first and second range, skip if invalid
@@ -72,7 +72,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .filter(|a| is_fully_overlapped(&a.0, &a.1))
         .count();
 
-    // Determine the number of partially overlapped assignments (part 1)
+    // Determine the number of partially overlapped assignments (part 2)
     let partially_overlapped_count = assignments
         .iter()
         .filter(|a| is_partially_overlapped(&a.0, &a.1))

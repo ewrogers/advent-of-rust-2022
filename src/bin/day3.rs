@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let line = match line {
             Ok(line) if line.is_empty() => continue,
             Ok(line) => line,
-            _ => break,
+            Err(_) => break,
         };
 
         rucksacks.push(line);
