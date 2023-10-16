@@ -141,7 +141,7 @@ fn move_grouped_crates(
     }
 
     // Pop all items and store as a group to be moved (preserve order)
-    let mut group: Vec<String> = vec![];
+    let mut group: Vec<String> = Vec::with_capacity(count);
     for _ in 0..count {
         if let Some(item) = stacks[from_index].pop() {
             let _ = group.insert(0, item);
