@@ -24,3 +24,5 @@ Ex: `data/day1_input.txt`
 ## 📄 Single File Solutions
 
 For the sake of simplicity, all code related to a single day puzzle is contained within a single file.
+
+Solutions for both `Part I` and `Part II` are included within each file.
