@@ -16,6 +16,7 @@ impl Instruction {
         let tokens: Vec<&str> = line.split(" ").collect();
         match tokens[0] {
             // Move command requires `count`, `to`, and `from` values
+            // EX: move 2 from 5 to 9
             "move" if tokens.len() >= 6 => {
                 // Only create the move command if all values were parsed OK
                 match (tokens[1].parse(), tokens[3].parse(), tokens[5].parse()) {
@@ -93,6 +94,7 @@ fn read_initial_stacks(reader: &mut impl BufRead) -> Vec<Vec<String>> {
             stack_index += 1;
         }
 
+        // Clear the line buffer for the next read_line
         line.clear();
     }
 
