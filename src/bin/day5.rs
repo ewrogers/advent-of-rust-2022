@@ -13,7 +13,7 @@ enum Instruction {
 
 impl Instruction {
     pub fn parse(line: &str) -> Option<Self> {
-        let tokens: Vec<&str> = line.split(" ").collect();
+        let tokens: Vec<&str> = line.split(' ').collect();
         match tokens[0] {
             // Move command requires `count`, `to`, and `from` values
             // EX: move 2 from 5 to 9
@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let instructions = read_instructions(&mut reader);
 
     // Make a deep copy of the initial stacks for part 2
-    let mut stacks_p2: Vec<Vec<String>> = stacks_p1.iter().cloned().collect();
+    let mut stacks_p2: Vec<Vec<String>> = stacks_p1.to_vec();
 
     for inst in instructions {
         match inst {
@@ -79,8 +79,7 @@ fn read_initial_stacks(reader: &mut impl BufRead) -> Vec<Vec<String>> {
         }
 
         // Assumes the `[X] [Y] [Z] ...` format for the line
-        let mut stack_index = 0;
-        for char in line.chars().skip(1).step_by(4) {
+        for (stack_index, char) in line.chars().skip(1).step_by(4).enumerate() {
             // Ensure the stack exists in the collection
             while stacks.len() <= stack_index {
                 stacks.push(Vec::with_capacity(100))
@@ -91,7 +90,6 @@ fn read_initial_stacks(reader: &mut impl BufRead) -> Vec<Vec<String>> {
             if char.is_ascii_alphabetic() {
                 let _ = &stacks[stack_index].insert(0, char.to_string());
             }
-            stack_index += 1;
         }
 
         // Clear the line buffer for the next read_line
@@ -122,7 +120,7 @@ fn read_instructions(reader: &mut impl BufRead) -> Vec<Instruction> {
 }
 
 // Moves a single crate from one stack to another
-fn move_single_crate(stacks: &mut Vec<Vec<String>>, from_index: usize, to_index: usize) {
+fn move_single_crate(stacks: &mut [Vec<String>], from_index: usize, to_index: usize) {
     if from_index == to_index {
         return;
     }
@@ -133,7 +131,7 @@ fn move_single_crate(stacks: &mut Vec<Vec<String>>, from_index: usize, to_index:
 }
 
 fn move_grouped_crates(
-    stacks: &mut Vec<Vec<String>>,
+    stacks: &mut [Vec<String>],
     from_index: usize,
     to_index: usize,
     count: usize,
@@ -146,14 +144,14 @@ fn move_grouped_crates(
     let mut group: Vec<String> = Vec::with_capacity(count);
     for _ in 0..count {
         if let Some(item) = stacks[from_index].pop() {
-            let _ = group.insert(0, item);
+            group.insert(0, item);
         }
     }
 
     stacks[to_index].append(&mut group);
 }
 
-fn get_top_crate_order(stacks: &Vec<Vec<String>>) -> String {
+fn get_top_crate_order(stacks: &[Vec<String>]) -> String {
     stacks
         .iter()
         .fold(String::new(), |mut str, stack| match &stack.last() {

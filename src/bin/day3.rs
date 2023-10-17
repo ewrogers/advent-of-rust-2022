@@ -51,12 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 // Attempts to get the common item between two "compartment" slices
 fn get_common_item(first: &str, second: &str) -> Option<char> {
-    for item in first.chars() {
-        if second.contains(item) {
-            return Some(item);
-        }
-    }
-    None
+    first.chars().find(|&item| second.contains(item))
 }
 
 // Attempts to get the common badge item between a group of rucksacks
@@ -69,13 +64,10 @@ fn get_common_badge(rucksacks: &[String]) -> Option<char> {
     let first_rucksack = &rucksacks[0];
     let other_rucksacks = &rucksacks[1..];
 
-    for item in first_rucksack.chars() {
-        // If this item was found in all other rucksacks, it's the common badge
-        if other_rucksacks.iter().all(|sack| sack.contains(item)) {
-            return Some(item);
-        }
-    }
-    None
+    // If this item was found in all other rucksacks, it's the common badge
+    first_rucksack
+        .chars()
+        .find(|&item| other_rucksacks.iter().all(|sack| sack.contains(item)))
 }
 
 // Gets the priority value of an item

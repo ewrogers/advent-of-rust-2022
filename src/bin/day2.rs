@@ -144,10 +144,6 @@ fn determine_outcome(their_shape: &Shape, your_shape: &Shape) -> Outcome {
 
 // Determines if shape A beats shape B
 fn a_beats_b(a: &Shape, b: &Shape) -> bool {
-    match (a, b) {
-        (Rock, Scissors) => true,
-        (Paper, Rock) => true,
-        (Scissors, Paper) => true,
-        _ => false,
-    }
+    // See: https://doc.rust-lang.org/std/macro.matches.html
+    matches!((a, b), (Rock, Scissors) | (Paper, Rock) | (Scissors, Paper))
 }
