@@ -1,4 +1,4 @@
-use advent_of_rust_2022::ArenaTree;
+use advent_of_rust_2022::{ArenaTree, Node};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -20,6 +20,10 @@ enum FileEntry {
     File(i64, String, usize), // last param is parent node, allowing same name by parent dir
     Directory(String, usize), // last param is parent node, allowing same name by parent dir
 }
+
+// Used in part 2!
+const TOTAL_DISK_SPACE: u64 = 70_000_000;
+const REQUIRED_DISK_SPACE: u64 = 30_000_000;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let file = File::open("data/day7_input.txt")?;
@@ -89,20 +93,44 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!();
 
     // Copy each directory under 100k total size into a vector
-    let mut small_dir_vec: Vec<(String, u64)> = Vec::with_capacity(100);
-    collect_dirs_into_vec(&file_system, root_node, &mut small_dir_vec, 100_000);
+    let mut under_100k_vec: Vec<(String, u64)> = Vec::new();
+    collect_dirs_into_vec(&file_system, root_node, &mut under_100k_vec, &|(
+        node,
+        size,
+    )| match node.value {
+        FileEntry::Directory(_, _) => size <= 100_000,
+        _ => false,
+    });
 
     // Sum each directory under 100k (part 1)
     // Verify with `grep -E '\(dir, size=[0-9]{1,5}\)'`
-    let small_dir_sum: u64 = small_dir_vec
+    let under_100k_sum: u64 = under_100k_vec
         .into_iter()
-        .map(|(name, total_size)| {
-            println!("Directory {name}, size = {total_size}");
-            total_size
-        })
+        .map(|(_, total_size)| total_size)
         .sum();
 
-    println!("[Part I] The sum of all directories with 100k or less is {small_dir_sum}");
+    println!("[Part I] The sum of all directories with 100K or less is {under_100k_sum}");
+
+    // Determine the total used and needed for part 2
+    let total_used: u64 = calc_total_size(&file_system, root_node);
+    let amount_needed = REQUIRED_DISK_SPACE - (TOTAL_DISK_SPACE - total_used);
+
+    let mut big_enough_vec: Vec<(String, u64)> = Vec::new();
+    collect_dirs_into_vec(&file_system, root_node, &mut big_enough_vec, &|(
+        node,
+        size,
+    )| match node.value {
+        FileEntry::Directory(_, _) => size >= amount_needed,
+        _ => false,
+    });
+
+    let size_to_delete: u64 = big_enough_vec
+        .into_iter()
+        .map(|(_, size)| size)
+        .min()
+        .unwrap_or(0);
+
+    println!("[Part II] Can delete directory with size {size_to_delete} to free required {amount_needed}");
 
     Ok(())
 }
@@ -148,20 +176,23 @@ fn parse_terminal(reader: &mut impl BufRead) -> Vec<Term> {
     commands
 }
 
-// Copies each directory with the total size, into a vector (if the dir is within size limit)
-fn collect_dirs_into_vec(
+// Copies each directory with the total size, into a vector (if the dir matches predicate)
+fn collect_dirs_into_vec<P>(
     tree: &ArenaTree<FileEntry>,
     index: usize,
     vec: &mut Vec<(String, u64)>,
-    max_size: u64,
-) -> usize {
+    predicate: &P,
+) -> usize
+where
+    P: Fn((&Node<FileEntry>, u64)) -> bool,
+{
     let node = &tree.nodes[index];
     let total_size = calc_total_size(tree, index);
 
     let mut push_count: usize = 0;
 
     match &node.value {
-        FileEntry::Directory(name, _) if total_size <= max_size => {
+        FileEntry::Directory(name, _) if predicate((node, total_size)) => {
             vec.push((name.clone(), total_size));
             push_count += 1;
         }
@@ -169,7 +200,7 @@ fn collect_dirs_into_vec(
     }
 
     for child in &node.children {
-        push_count += collect_dirs_into_vec(tree, *child, vec, max_size);
+        push_count += collect_dirs_into_vec(tree, *child, vec, predicate);
     }
 
     push_count
