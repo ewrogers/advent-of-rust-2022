@@ -61,26 +61,15 @@ where
 
     // Attempts to find an existing node with the value, returning the index (if found)
     pub fn find_node(&self, value: &T) -> Option<usize> {
-        for node in &self.nodes {
-            if &node.value == value {
-                return Some(node.index);
-            }
-        }
-        None
+        self.nodes.iter().position(|node| node.value == *value)
     }
 
     // Attempts to find an existing node matching the predicate, returning the index (if true)
-    pub fn find_node_by<P>(&self, filter: P) -> Option<usize>
+    pub fn find_node_by<P>(&self, predicate: P) -> Option<usize>
     where
         P: Fn(&Node<T>) -> bool,
     {
-        for i in 0..self.nodes.len() {
-            let node = &self.nodes[i];
-            if filter(node) {
-                return Some(node.index);
-            }
-        }
-        None
+        self.nodes.iter().position(predicate)
     }
 
     pub fn set_parent_child(&mut self, parent: usize, child: usize) {
@@ -94,22 +83,22 @@ where
         self.nodes[child].parent = Some(parent);
     }
 
-    pub fn traverse<F>(&self, index: usize, f: &mut F)
+    pub fn traverse<F>(&self, index: usize, visit: &F)
     where
-        F: FnMut(&Node<T>, usize),
+        F: Fn(&Node<T>, usize),
     {
-        self.traverse_with_depth(index, f, 0)
+        self.traverse_with_depth(index, visit, 0)
     }
 
-    fn traverse_with_depth<F>(&self, index: usize, f: &mut F, depth: usize)
+    fn traverse_with_depth<F>(&self, index: usize, visit: &F, depth: usize)
     where
-        F: FnMut(&Node<T>, usize),
+        F: Fn(&Node<T>, usize),
     {
         let node = &self.nodes[index];
-        f(node, depth);
+        visit(node, depth);
 
         for child in &node.children {
-            self.traverse_with_depth(*child, f, depth + 1);
+            self.traverse_with_depth(*child, visit, depth + 1);
         }
     }
 }
