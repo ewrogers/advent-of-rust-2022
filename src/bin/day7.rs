@@ -109,7 +109,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let total_used: u64 = calc_total_size(&file_system, root_node);
     let min_needed = REQUIRED_DISK_SPACE - (TOTAL_DISK_SPACE - total_used);
 
-    // Get all directories that are at least the min_needed, pick the smallest
+    // Get all directories that are at least the min_needed, pick the smallest (part 2)
     let dir_size_to_delete = file_system
         .nodes
         .iter()
