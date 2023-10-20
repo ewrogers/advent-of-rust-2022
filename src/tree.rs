@@ -93,4 +93,23 @@ where
         }
         self.nodes[child].parent = Some(parent);
     }
+
+    pub fn traverse<F>(&self, index: usize, f: &mut F)
+    where
+        F: FnMut(&Node<T>, usize),
+    {
+        self.traverse_with_depth(index, f, 0)
+    }
+
+    fn traverse_with_depth<F>(&self, index: usize, f: &mut F, depth: usize)
+    where
+        F: FnMut(&Node<T>, usize),
+    {
+        let node = &self.nodes[index];
+        f(node, depth);
+
+        for child in &node.children {
+            self.traverse_with_depth(*child, f, depth + 1);
+        }
+    }
 }

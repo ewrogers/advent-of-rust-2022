@@ -1,4 +1,4 @@
-use advent_of_rust_2022::{ArenaTree, Node};
+use advent_of_rust_2022::ArenaTree;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -89,50 +89,44 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // Print the file tree for fun visualization
-    print_file_tree(&file_system, root_node, 0);
+    print_file_tree(&file_system, root_node);
     println!();
 
-    // Get all directories under 100k total size into a vector
-    let mut under_100k_vec: Vec<(String, u64)> = Vec::new();
-    collect_dirs_into_vec(&file_system, root_node, &mut under_100k_vec, &|(
-        node,
-        size,
-    )| match node.value {
-        FileEntry::Directory(_, _) => size <= 100_000,
-        _ => false,
-    });
-
-    // Sum each directory under 100k (part 1)
-    // Verify with `grep -E '\(dir, size=[0-9]{1,5}\)'`
-    let under_100k_sum: u64 = under_100k_vec
-        .into_iter()
-        .map(|(_, total_size)| total_size)
+    // Get all directories under 100k total size, then sum their total_size (part 1)
+    let under_100k_sum: u64 = file_system
+        .nodes
+        .iter()
+        .map(|node| match &node.value {
+            FileEntry::Directory(_, _) => calc_total_size(&file_system, node.index),
+            _ => 0,
+        })
+        .filter(|dir_size| *dir_size <= 100_000)
         .sum();
 
     println!("[Part I] The sum of all directories with 100K or less is {under_100k_sum}");
 
-    // Determine the total used and needed for part 2
+    // Determine the total used and size needed (part 2)
     let total_used: u64 = calc_total_size(&file_system, root_node);
-    let amount_needed = REQUIRED_DISK_SPACE - (TOTAL_DISK_SPACE - total_used);
+    let min_needed = REQUIRED_DISK_SPACE - (TOTAL_DISK_SPACE - total_used);
 
-    // Get all directories that are at least the amount needed in total size
-    let mut big_enough_vec: Vec<(String, u64)> = Vec::new();
-    collect_dirs_into_vec(&file_system, root_node, &mut big_enough_vec, &|(
-        node,
-        size,
-    )| match node.value {
-        FileEntry::Directory(_, _) => size >= amount_needed,
-        _ => false,
-    });
+    // Get all directories that are at least the min_needed, pick the smallest
+    let dir_size_to_delete = file_system
+        .nodes
+        .iter()
+        .map(|node| match &node.value {
+            FileEntry::Directory(_, _) => calc_total_size(&file_system, node.index),
+            _ => 0,
+        })
+        .filter(|dir_size| *dir_size >= min_needed)
+        .min();
 
-    // Select the smallest directory necessary to delete for the required space (part 2)
-    let size_to_delete: u64 = big_enough_vec
-        .into_iter()
-        .map(|(_, size)| size)
-        .min()
-        .unwrap_or(0);
+    match dir_size_to_delete {
+        Some(size_to_delete) => {
+            println!("[Part II] Can delete directory with size {size_to_delete} to perform upgrade (needed = {min_needed})")
+        }
+        None => println!("Unable to solve part 2, no size to delete was found!"),
+    }
 
-    println!("[Part II] Can delete directory with size {size_to_delete} to free required {amount_needed}");
     Ok(())
 }
 
@@ -177,56 +171,23 @@ fn parse_terminal(reader: &mut impl BufRead) -> Vec<Term> {
     commands
 }
 
-// Copies each directory with the total size, into a vector (if the dir matches predicate)
-fn collect_dirs_into_vec<P>(
-    tree: &ArenaTree<FileEntry>,
-    index: usize,
-    vec: &mut Vec<(String, u64)>,
-    predicate: &P,
-) -> usize
-where
-    P: Fn((&Node<FileEntry>, u64)) -> bool,
-{
-    let node = &tree.nodes[index];
-    let total_size = calc_total_size(tree, index);
-
-    let mut push_count: usize = 0;
-
-    match &node.value {
-        FileEntry::Directory(name, _) if predicate((node, total_size)) => {
-            vec.push((name.clone(), total_size));
-            push_count += 1;
-        }
-        _ => {}
-    }
-
-    for child in &node.children {
-        push_count += collect_dirs_into_vec(tree, *child, vec, predicate);
-    }
-
-    push_count
-}
-
 // Recursively prints the file tree to the console
-fn print_file_tree(tree: &ArenaTree<FileEntry>, index: usize, indent_count: usize) {
-    let node = &tree.nodes[index];
-    let total_size = calc_total_size(tree, index);
+fn print_file_tree(tree: &ArenaTree<FileEntry>, index: usize) {
+    tree.traverse(index, &mut |node, depth| {
+        let indent = " ".repeat(depth * 2);
 
-    let indent = " ".repeat(indent_count);
+        let total_size = calc_total_size(tree, node.index);
 
-    match &node.value {
-        FileEntry::Root => println!("{indent}- / (dir, size={total_size})"),
-        FileEntry::Directory(dirname, _) => {
-            println!("{indent}- {dirname}/ (dir, size={total_size})")
+        match &node.value {
+            FileEntry::Root => println!("{indent}- / (dir, size={total_size})"),
+            FileEntry::Directory(dirname, _) => {
+                println!("{indent}- {dirname}/ (dir, size={total_size})")
+            }
+            FileEntry::File(size, filename, _) => {
+                println!("{indent}- {filename} (file, size={size})")
+            }
         }
-        FileEntry::File(size, filename, _) => {
-            println!("{indent}- {filename} (file, size={size})")
-        }
-    }
-
-    for child in &node.children {
-        print_file_tree(tree, *child, indent_count + 2)
-    }
+    });
 }
 
 // Recursively calculates the total size of a directory
