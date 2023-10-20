@@ -173,7 +173,7 @@ fn parse_terminal(reader: &mut impl BufRead) -> Vec<Term> {
 
 // Recursively prints the file tree to the console
 fn print_file_tree(tree: &ArenaTree<FileEntry>, index: usize) {
-    tree.traverse(index, &mut |node, depth| {
+    tree.traverse(index, &|node, depth| {
         let indent = " ".repeat(depth * 2);
 
         let total_size = calc_total_size(tree, node.index);
