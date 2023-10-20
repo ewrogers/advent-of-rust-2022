@@ -41,6 +41,11 @@ impl<T> ArenaTree<T>
 where
     T: PartialEq,
 {
+    // Gets the number of nodes in the tree
+    pub fn size(&self) -> usize {
+        self.nodes.len()
+    }
+
     // Attempts to get the index of a node with the value, or inserts it
     pub fn find_or_add_node(&mut self, value: T) -> usize {
         // First check if the value is stored already
@@ -87,10 +92,5 @@ where
             self.nodes[parent].children.push(child);
         }
         self.nodes[child].parent = Some(parent);
-    }
-
-    // Gets the number of nodes in the tree
-    pub fn size(&self) -> usize {
-        self.nodes.len()
     }
 }

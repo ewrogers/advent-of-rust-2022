@@ -86,6 +86,23 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Print the file tree for fun visualization
     print_file_tree(&file_system, root_node, 0);
+    println!();
+
+    // Copy each directory under 100k total size into a vector
+    let mut small_dir_vec: Vec<(String, u64)> = Vec::with_capacity(100);
+    collect_dirs_into_vec(&file_system, root_node, &mut small_dir_vec, 100_000);
+
+    // Sum each directory under 100k (part 1)
+    // Verify with `grep -E '\(dir, size=[0-9]{1,5}\)'`
+    let small_dir_sum: u64 = small_dir_vec
+        .into_iter()
+        .map(|(name, total_size)| {
+            println!("Directory {name}, size = {total_size}");
+            total_size
+        })
+        .sum();
+
+    println!("[Part I] The sum of all directories with 100k or less is {small_dir_sum}");
 
     Ok(())
 }
@@ -131,16 +148,44 @@ fn parse_terminal(reader: &mut impl BufRead) -> Vec<Term> {
     commands
 }
 
+// Copies each directory with the total size, into a vector (if the dir is within size limit)
+fn collect_dirs_into_vec(
+    tree: &ArenaTree<FileEntry>,
+    index: usize,
+    vec: &mut Vec<(String, u64)>,
+    max_size: u64,
+) -> usize {
+    let node = &tree.nodes[index];
+    let total_size = calc_total_size(tree, index);
+
+    let mut push_count: usize = 0;
+
+    match &node.value {
+        FileEntry::Directory(name, _) if total_size <= max_size => {
+            vec.push((name.clone(), total_size));
+            push_count += 1;
+        }
+        _ => {}
+    }
+
+    for child in &node.children {
+        push_count += collect_dirs_into_vec(tree, *child, vec, max_size);
+    }
+
+    push_count
+}
+
 // Recursively prints the file tree to the console
 fn print_file_tree(tree: &ArenaTree<FileEntry>, index: usize, indent_count: usize) {
     let node = &tree.nodes[index];
+    let total_size = calc_total_size(tree, index);
 
     let indent = " ".repeat(indent_count);
 
     match &node.value {
-        FileEntry::Root => println!("{indent}- / (dir)"),
+        FileEntry::Root => println!("{indent}- / (dir, size={total_size})"),
         FileEntry::Directory(dirname, _) => {
-            println!("{indent}- {dirname}/ (dir)")
+            println!("{indent}- {dirname}/ (dir, size={total_size})")
         }
         FileEntry::File(size, filename, _) => {
             println!("{indent}- {filename} (file, size={size})")
@@ -149,5 +194,19 @@ fn print_file_tree(tree: &ArenaTree<FileEntry>, index: usize, indent_count: usiz
 
     for child in &node.children {
         print_file_tree(tree, *child, indent_count + 2)
+    }
+}
+
+// Recursively calculates the total size of a directory
+fn calc_total_size(tree: &ArenaTree<FileEntry>, index: usize) -> u64 {
+    let node = &tree.nodes[index];
+
+    match &node.value {
+        FileEntry::File(size, _, _) => *size as u64,
+        _ => node
+            .children
+            .iter()
+            .map(|child| calc_total_size(tree, *child))
+            .sum(),
     }
 }
