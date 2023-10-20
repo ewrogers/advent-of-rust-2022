@@ -92,7 +92,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     print_file_tree(&file_system, root_node, 0);
     println!();
 
-    // Copy each directory under 100k total size into a vector
+    // Get all directories under 100k total size into a vector
     let mut under_100k_vec: Vec<(String, u64)> = Vec::new();
     collect_dirs_into_vec(&file_system, root_node, &mut under_100k_vec, &|(
         node,
@@ -115,6 +115,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let total_used: u64 = calc_total_size(&file_system, root_node);
     let amount_needed = REQUIRED_DISK_SPACE - (TOTAL_DISK_SPACE - total_used);
 
+    // Get all directories that are at least the amount needed in total size
     let mut big_enough_vec: Vec<(String, u64)> = Vec::new();
     collect_dirs_into_vec(&file_system, root_node, &mut big_enough_vec, &|(
         node,
@@ -124,6 +125,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         _ => false,
     });
 
+    // Select the smallest directory necessary to delete for the required space (part 2)
     let size_to_delete: u64 = big_enough_vec
         .into_iter()
         .map(|(_, size)| size)
@@ -131,7 +133,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or(0);
 
     println!("[Part II] Can delete directory with size {size_to_delete} to free required {amount_needed}");
-
     Ok(())
 }
 
