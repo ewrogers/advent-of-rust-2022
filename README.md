@@ -21,8 +21,6 @@ Each puzzle input is located within the [data](./data) folder, named by the day.
 
 Ex: `data/day1_input.txt`
 
-## 📄 Single File Solutions
+## 1️⃣ + 2️⃣ Solutions
 
-For the sake of simplicity, all code related to a single day puzzle is contained within a single file.
-
-Solutions for both `Part I` and `Part II` are included within each file.
+Solutions for both `Part I` and `Part II` are included within each day folder.
