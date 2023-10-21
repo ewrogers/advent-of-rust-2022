@@ -66,6 +66,10 @@ impl Cpu {
 // These are the key cycle numbers to report & sum signal strengths
 const KEY_CYCLES: [i32; 6] = [20, 60, 100, 140, 180, 220];
 
+// CRT dimensions in pixels for part 2
+const SCREEN_WIDTH: usize = 40;
+const SCREEN_HEIGHT: usize = 6;
+
 fn main() -> Result<(), Box<dyn Error>> {
     let file = File::open("data/day10_input.txt")?;
     let mut reader = BufReader::new(file);
@@ -76,9 +80,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Initialize a CPU that will perform the instructions
     let mut cpu = Cpu::new();
 
+    // Initialize a frame buffer for the pixels to be displayed (part 2)
+    let mut frame_buffer: Vec<char> = vec!['.'; SCREEN_WIDTH * SCREEN_HEIGHT];
+
     // Total up the signal strength during key cycles (part 1)
     let mut total_signal_strength = 0;
-    while cpu.cycle <= 220 {
+    while cpu.cycle <= frame_buffer.len() as i32 {
         if !cpu.is_busy() && !instructions.is_empty() {
             let next = instructions.pop_front().unwrap();
             cpu.begin_instruction(next);
@@ -94,11 +101,32 @@ fn main() -> Result<(), Box<dyn Error>> {
             )
         }
 
+        // The pixel is lit if the register X is within +/- 1 pixel of the current cycle
+        let sprite_position = cpu.register_x;
+        let pixel_index = (cpu.cycle - 1) as usize;
+        let h_index = (cpu.cycle - 1) % SCREEN_WIDTH as i32;
+        let is_pixel_lit = (h_index - sprite_position).unsigned_abs() < 2;
+
+        frame_buffer[pixel_index] = match is_pixel_lit {
+            true => '#',
+            false => ' ',
+        };
+
         cpu.tick();
     }
     println!();
 
     println!("[Part I] The total signal strength is {total_signal_strength}");
+
+    println!("[Part II] This is the rendered CRT frame buffer...");
+    for y in 0..SCREEN_HEIGHT {
+        for x in 0..SCREEN_WIDTH {
+            let pixel_index = y * SCREEN_WIDTH + x;
+            print!("{}", frame_buffer[pixel_index])
+        }
+        println!();
+    }
+    println!();
 
     Ok(())
 }
