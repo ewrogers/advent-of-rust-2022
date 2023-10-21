@@ -9,11 +9,11 @@ pub struct ArenaTree<T>
 where
     T: PartialEq,
 {
-    pub nodes: Vec<Node<T>>,
+    pub nodes: Vec<TreeNode<T>>,
 }
 
 #[derive(Debug)]
-pub struct Node<T>
+pub struct TreeNode<T>
 where
     T: PartialEq,
 {
@@ -23,7 +23,7 @@ where
     pub children: Vec<usize>,
 }
 
-impl<T> Node<T>
+impl<T> TreeNode<T>
 where
     T: PartialEq,
 {
@@ -55,7 +55,7 @@ where
 
         // Otherwise add the new to the tree and return the new index
         let index = self.nodes.len();
-        self.nodes.push(Node::new(index, value));
+        self.nodes.push(TreeNode::new(index, value));
         index
     }
 
@@ -67,7 +67,7 @@ where
     // Attempts to find an existing node matching the predicate, returning the index (if true)
     pub fn find_node_by<P>(&self, predicate: P) -> Option<usize>
     where
-        P: Fn(&Node<T>) -> bool,
+        P: Fn(&TreeNode<T>) -> bool,
     {
         self.nodes.iter().position(predicate)
     }
@@ -85,14 +85,14 @@ where
 
     pub fn traverse<F>(&self, index: usize, visit: &F)
     where
-        F: Fn(&Node<T>, usize),
+        F: Fn(&TreeNode<T>, usize),
     {
         self.traverse_with_depth(index, visit, 0)
     }
 
     fn traverse_with_depth<F>(&self, index: usize, visit: &F, depth: usize)
     where
-        F: Fn(&Node<T>, usize),
+        F: Fn(&TreeNode<T>, usize),
     {
         let node = &self.nodes[index];
         visit(node, depth);
