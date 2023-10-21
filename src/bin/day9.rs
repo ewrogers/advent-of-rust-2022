@@ -72,15 +72,26 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Simulate the rope with just a head + tail (part 1)
     let mut rope_p1: ArenaLinkedList<PointHistory> =
         ArenaLinkedList::from_vec(vec![PointHistory::default(), PointHistory::default()]);
-    for movement in moves {
+    for movement in moves.iter() {
         simulate_movement(movement, &mut rope_p1);
     }
 
-    // Determine the number of unique spaces the tail has moved to (part 1)
-    let tail_pos_count = rope_p1.last().unwrap().visited.len();
-    println!("[Part I] The tail has moved to {tail_pos_count} unique positions");
+    // Determine the number of unique spaces the tail has moved into (part 1)
+    let tail_count = rope_p1.last().unwrap().visited.len();
+    println!("[Part I] The tail has moved to {tail_count} unique positions");
 
-    // TODO: part2 using a rope with 10 knots
+    // Simulate the rope with 10 nodes (part 2)
+    let mut rope_p2: ArenaLinkedList<PointHistory> = ArenaLinkedList::new();
+    for _ in 0..10 {
+        rope_p2.push(PointHistory::default());
+    }
+    for movement in moves.iter() {
+        simulate_movement(movement, &mut rope_p2);
+    }
+
+    // Determine the number of unique spaces the 9th knot has moved into (part 2)
+    let ninth_count = rope_p2.last().unwrap().visited.len();
+    println!("[Part II] The 9th knot has moved to {ninth_count} unique positions");
 
     Ok(())
 }
@@ -132,69 +143,85 @@ fn parse_moves(reader: &mut impl BufRead) -> Vec<MoveSpaces> {
 }
 
 // Simulates head and tail movement a certain direction and spaces
-fn simulate_movement(movement: MoveSpaces, rope: &mut ArenaLinkedList<PointHistory>) {
+fn simulate_movement(movement: &MoveSpaces, rope: &mut ArenaLinkedList<PointHistory>) {
     let dir = movement.0;
     let spaces = movement.1;
 
     // TODO: Refactor this to handle more than two items, chain moves backwards from head -> tail
 
-    // Move the head in the direction, X number of spaces
+    // Move the head and then move all following nodes relatively to their previous
+    // H <- 1 <- 2 <- 3 <- 4 ... < TAIL
     for _ in 0..spaces {
+        // The head moves based on the explicit movement
         let head = rope.get_mut(0).unwrap();
         head.move_dir(&dir);
 
-        // Downgrade to immutable references
-        let head = rope.get(0).unwrap();
-        let tail = rope.get(1).unwrap();
+        for i in 0..rope.len() {
+            // We only need the leader's position for the follower
+            let leader_pos = match rope.get(i) {
+                Some(node) => (node.x, node.y),
+                None => break,
+            };
 
-        // If not on the same row or column, there is a diagonal distance
-        let diagonal = head.x != tail.x && head.y != tail.y;
+            // We need a mutable reference to the follower so we can move them
+            let follower = match rope.get_mut(i + 1) {
+                Some(node) => node,
+                None => break,
+            };
 
-        // If the tail is only a single space behind (including diagonal), do not move it
-        // Otherwise we have to move the tail based on whether it is diagonal or not
-        let distance = get_distance(head.x, head.y, tail.x, tail.y);
-        let max_distance = if diagonal { 3 } else { 2 };
-        if distance < max_distance {
-            continue;
+            follow_the_leader(follower, leader_pos.0, leader_pos.1);
         }
+    }
+}
 
-        // Determine which horizontal direction we should move the tail (if any)
-        let h_dir = match head.x - tail.x {
-            dx if dx.unsigned_abs() > 0 => {
-                if dx > 0 {
-                    Some(Direction::East)
-                } else {
-                    Some(Direction::West)
-                }
+// Moves the follower node towards the leader according to the follow distance rules
+fn follow_the_leader(follower: &mut PointHistory, leader_x: i32, leader_y: i32) {
+    // If not on the same row or column, there is a diagonal distance
+    let diagonal = leader_x != follower.x && leader_y != follower.y;
+
+    // If the follower is only a single space behind (including diagonal), do not move it
+    // Otherwise we have to move the follower based on whether it is diagonal or not
+    let distance = get_distance(leader_x, leader_y, follower.x, follower.y);
+    let max_distance = if diagonal { 3 } else { 2 };
+    if distance < max_distance {
+        return;
+    }
+
+    // Determine which horizontal direction we should move the follower (if any)
+    let h_dir = match leader_x - follower.x {
+        dx if dx.unsigned_abs() > 0 => {
+            if dx > 0 {
+                Some(Direction::East)
+            } else {
+                Some(Direction::West)
             }
-            _ => None,
-        };
-
-        // Determine which vertical direction we should move the tail (if any)
-        let v_dir = match head.y - tail.y {
-            dy if dy.unsigned_abs() > 0 => {
-                if dy > 0 {
-                    Some(Direction::North)
-                } else {
-                    Some(Direction::South)
-                }
-            }
-            _ => None,
-        };
-
-        // Move the tail in the direction, which can be diagonal
-        let move_dir = match (&h_dir, &v_dir) {
-            (Some(h), None) => Some(*h),
-            (None, Some(v)) => Some(*v),
-            (Some(h), Some(v)) => Some(combine_dir(h, v)),
-            _ => None,
-        };
-
-        // If the tail needs to move, do so at the end
-        if let Some(dir) = move_dir {
-            let tail = rope.get_mut(1).unwrap();
-            tail.move_dir(&dir);
         }
+        _ => None,
+    };
+
+    // Determine which vertical direction we should move the follower (if any)
+    let v_dir = match leader_y - follower.y {
+        dy if dy.unsigned_abs() > 0 => {
+            if dy > 0 {
+                Some(Direction::North)
+            } else {
+                Some(Direction::South)
+            }
+        }
+        _ => None,
+    };
+
+    // Combine directions for both horizontal and vertical movement
+    let move_dir = match (&h_dir, &v_dir) {
+        (Some(h), None) => Some(*h),
+        (None, Some(v)) => Some(*v),
+        (Some(h), Some(v)) => Some(combine_dir(h, v)),
+        _ => None,
+    };
+
+    // If the follower needs to move, do so
+    if let Some(dir) = move_dir {
+        follower.move_dir(&dir);
     }
 }
 
