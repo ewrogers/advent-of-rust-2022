@@ -2,28 +2,35 @@
 // This uses a vector to store all linked nodes by index instead,
 // avoiding all the headaches of lifetimes and references
 #[derive(Debug, Default)]
-pub struct ArenaLinkedList<T>
-where
-    T: PartialEq,
-{
+pub struct ArenaLinkedList<T> {
     pub nodes: Vec<LinkedListNode<T>>,
 }
 
 #[derive(Debug)]
-pub struct LinkedListNode<T>
-where
-    T: PartialEq,
-{
+pub struct LinkedListNode<T> {
     pub index: usize,
     pub value: T,
     pub prev: Option<usize>,
     pub next: Option<usize>,
 }
 
-impl<T> ArenaLinkedList<T>
-where
-    T: PartialEq,
-{
+impl<T> ArenaLinkedList<T> {
+    pub fn new() -> Self {
+        Self { nodes: Vec::new() }
+    }
+
+    pub fn from_vec(vec: Vec<T>) -> Self {
+        let mut list = Self {
+            nodes: Vec::with_capacity(vec.len()),
+        };
+
+        for item in vec {
+            list.push(item);
+        }
+
+        list
+    }
+
     pub fn is_empty(&self) -> bool {
         self.nodes.len() < 1
     }
@@ -56,6 +63,23 @@ where
         }
     }
 
+    // Gets an immutable reference to a value within the list
+    pub fn get(&self, index: usize) -> Option<&T> {
+        match self.nodes.get(index) {
+            Some(node) => Some(&node.value),
+            None => None,
+        }
+    }
+
+    // Gets a mutable reference to a value within the list
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
+        match self.nodes.get_mut(index) {
+            Some(node) => Some(&mut node.value),
+            None => None,
+        }
+    }
+
+    // Pushes a new value to the end of the list, returning the index of the new item
     pub fn push(&mut self, value: T) -> usize {
         let index = self.nodes.len();
         self.nodes.push(LinkedListNode {
@@ -71,6 +95,7 @@ where
         index
     }
 
+    // Pops the last value off the list, returning it
     pub fn pop(&mut self) -> Option<T> {
         let node = match self.nodes.pop() {
             Some(node) => node,

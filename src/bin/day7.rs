@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut reader = BufReader::new(file);
 
     // Use an arena tree to represent the file system, with a root directory node
-    let mut file_system: ArenaTree<FileEntry> = ArenaTree::default();
+    let mut file_system: ArenaTree<FileEntry> = ArenaTree::new();
     let root_node = file_system.find_or_add_node(FileEntry::Root);
 
     // Parse the input as a list of terminal commands

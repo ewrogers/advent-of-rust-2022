@@ -1,6 +1,7 @@
 // 2D grid that can be used when you have a known column width
 // Rows can be added later, but must be of uniform size
 
+#[derive(Debug)]
 pub struct RowGrid<T> {
     pub width: usize,
     cells: Vec<T>,

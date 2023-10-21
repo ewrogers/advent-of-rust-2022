@@ -1,3 +1,5 @@
+use advent_of_rust_2022::ArenaLinkedList;
+use std::cell::RefCell;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -23,6 +25,12 @@ struct PointHistory {
     x: i32,
     y: i32,
     visited: Vec<(i32, i32)>,
+}
+
+impl Default for PointHistory {
+    fn default() -> Self {
+        Self::with_initial(0, 0)
+    }
 }
 
 impl PointHistory {
@@ -62,18 +70,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Parse the input file as a series of moves we can simulate
     let moves = parse_moves(&mut reader);
 
-    // Starting points of the head and tail
-    let mut head = PointHistory::with_initial(0, 0);
-    let mut tail = PointHistory::with_initial(0, 0);
-
-    // Simulate each movement with the head + tail following
+    // Simulate the rope with just a head + tail (part 1)
+    // We need to use a RefCell here for interior mutability
+    let rope_p1: ArenaLinkedList<RefCell<PointHistory>> = ArenaLinkedList::from_vec(vec![
+        RefCell::new(PointHistory::default()),
+        RefCell::new(PointHistory::default()),
+    ]);
     for movement in moves {
-        simulate_movement(movement, &mut head, &mut tail);
+        simulate_movement(movement, &rope_p1);
     }
 
     // Determine the number of unique spaces the tail has moved to (part 1)
-    let tail_pos_count = tail.visited.len();
+    let tail_pos_count = rope_p1.last().unwrap().borrow_mut().visited.len();
     println!("[Part I] The tail has moved to {tail_pos_count} unique positions");
+
+    // TODO: part2 using a rope with 10 knots
+
     Ok(())
 }
 
@@ -124,9 +136,17 @@ fn parse_moves(reader: &mut impl BufRead) -> Vec<MoveSpaces> {
 }
 
 // Simulates head and tail movement a certain direction and spaces
-fn simulate_movement(movement: MoveSpaces, head: &mut PointHistory, tail: &mut PointHistory) {
+fn simulate_movement(movement: MoveSpaces, rope: &ArenaLinkedList<RefCell<PointHistory>>) {
     let dir = movement.0;
     let spaces = movement.1;
+
+    // Normally Rust would not allow us to get two mutable references from the `rope` list
+    // By wrapping the individual values in RefCell we can borrow from the separately
+    // NOTE: This only disables borrow checking compile time, it can still throw at runtime!
+    let mut head = rope.first().unwrap().borrow_mut();
+    let mut tail = rope.last().unwrap().borrow_mut();
+
+    // TODO: Refactor this to handle more than two items, chain moves backwards from head -> tail
 
     // Move the head in the direction, X number of spaces
     for _ in 0..spaces {
@@ -137,7 +157,7 @@ fn simulate_movement(movement: MoveSpaces, head: &mut PointHistory, tail: &mut P
 
         // If the tail is only a single space behind (including diagonal), do not move it
         // Otherwise we have to move the tail based on whether it is diagonal or not
-        let distance = get_distance(head, tail);
+        let distance = get_distance(head.x, head.y, tail.x, tail.y);
         let max_distance = if diagonal { 3 } else { 2 };
         if distance < max_distance {
             continue;
@@ -182,8 +202,8 @@ fn simulate_movement(movement: MoveSpaces, head: &mut PointHistory, tail: &mut P
 }
 
 // Calculates the Manhattan distance between two points
-fn get_distance(a: &PointHistory, b: &PointHistory) -> usize {
-    ((a.x - b.x).unsigned_abs() + (a.y - b.y).unsigned_abs()) as usize
+fn get_distance(x1: i32, y1: i32, x2: i32, y2: i32) -> usize {
+    ((x1 - x2).unsigned_abs() + (y1 - y2).unsigned_abs()) as usize
 }
 
 // Determine a new direction based on combining a horizontal and vertical direction together

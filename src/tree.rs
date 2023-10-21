@@ -41,6 +41,10 @@ impl<T> ArenaTree<T>
 where
     T: PartialEq,
 {
+    pub fn new() -> Self {
+        Self { nodes: Vec::new() }
+    }
+
     // Gets the number of nodes in the tree
     pub fn size(&self) -> usize {
         self.nodes.len()
