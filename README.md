@@ -2,6 +2,8 @@
 
 The [Advent of Code 2022](https://adventofcode.com/2022) code challenges, written in Rust 🦀.
 
+Only using the [Rust Standard Library](https://doc.rust-lang.org/std/), no external crates.
+
 ## ⭐️ Getting Started
 
 You can clone the repository to run the solutions:
