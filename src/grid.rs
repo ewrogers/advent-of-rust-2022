@@ -1,85 +1,71 @@
-// A simple grid structure that wraps a vector and does the 2D math to access cells
-// Can access rows, columns, and cells
-#[derive(Debug)]
+// 2D grid that can be used when you have a known column width
+// Rows can be added later, but must be of uniform size
+
 pub struct RowGrid<T> {
-    vec: Vec<T>,
-    width: usize,
+    pub width: usize,
+    cells: Vec<T>,
 }
 
-impl<T> RowGrid<T> {
-    pub fn from_vec(vec: Vec<T>, width: usize) -> Self {
-        Self { vec, width }
-    }
-
-    pub fn row_count(&self) -> usize {
-        self.vec.len() / self.width
-    }
-
-    pub fn col_count(&self) -> usize {
-        self.width
-    }
-
-    pub fn row(&self, index: usize) -> Option<&[T]> {
-        let start_index = index * self.width;
-        let end_index = start_index + self.width;
-
-        if end_index > self.vec.len() {
-            return None;
+impl<T> RowGrid<T>
+where
+    T: Clone,
+{
+    pub fn with_width(width: usize) -> Self {
+        Self {
+            width,
+            cells: Vec::new(),
         }
-
-        Some(&self.vec[start_index..end_index])
     }
 
-    pub fn column(&self, index: usize) -> Option<Vec<&T>> {
-        if index >= self.width {
-            return None;
-        }
-
-        let height = self.row_count();
-        let mut vec: Vec<&T> = Vec::with_capacity(height);
-
-        for y in 0..height {
-            let value = &self.vec[y * self.width + index];
-            vec.push(value);
-        }
-
-        Some(vec)
+    pub fn height(&self) -> usize {
+        self.cells.len() / self.width
     }
 
-    // Gets back an immutable reference to a specific cell (if within bounds)
     pub fn cell(&self, x: usize, y: usize) -> Option<&T> {
-        let index = y * self.width + x;
-
-        if index >= self.vec.len() {
-            return None;
+        if x < self.width {
+            self.cells.get(y * self.width + x)
+        } else {
+            None
         }
-
-        Some(&self.vec[index])
     }
 
-    // Gets back a mutable reference to a specific cell (if within bounds)
-    pub fn cell_mut(&mut self, x: usize, y: usize) -> Option<&mut T> {
-        let index = y * self.width + x;
-
-        if index >= self.vec.len() {
-            return None;
+    pub fn row(&self, y: usize) -> Option<&[T]> {
+        if y < self.height() {
+            let start = y * self.width;
+            let end = start + self.width;
+            Some(&self.cells[start..end])
+        } else {
+            None
         }
-
-        Some(&mut self.vec[index])
     }
 
-    // Allows a function to be called for each grid item, and x/y coordinate
-    pub fn enumerate<F>(&self, mut f: F)
+    pub fn column(&self, x: usize) -> Option<Vec<&T>> {
+        if x < self.width {
+            let col = (0..self.height())
+                .map(|y| &self.cells[y * self.width + x])
+                .collect();
+            Some(col)
+        } else {
+            None
+        }
+    }
+
+    pub fn enumerate<F>(&self, mut func: F)
     where
-        F: FnMut(&T, (usize, usize)),
+        F: FnMut(usize, usize),
     {
-        let row_count = self.row_count();
-
-        for y in 0..row_count {
+        for y in 0..self.height() {
             for x in 0..self.width {
-                let value = &self.vec[y * self.width + x];
-                f(value, (x, y))
+                func(x, y);
             }
+        }
+    }
+
+    pub fn push_row(&mut self, row: Vec<T>) {
+        if row.len() == self.width {
+            self.cells.extend(row);
+        } else {
+            panic!("Row length does not match grid width of {}!", self.width);
         }
     }
 }
