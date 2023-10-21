@@ -1,5 +1,4 @@
 use advent_of_rust_2022::ArenaLinkedList;
-use std::cell::RefCell;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -71,17 +70,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let moves = parse_moves(&mut reader);
 
     // Simulate the rope with just a head + tail (part 1)
-    // We need to use a RefCell here for interior mutability
-    let rope_p1: ArenaLinkedList<RefCell<PointHistory>> = ArenaLinkedList::from_vec(vec![
-        RefCell::new(PointHistory::default()),
-        RefCell::new(PointHistory::default()),
-    ]);
+    let mut rope_p1: ArenaLinkedList<PointHistory> =
+        ArenaLinkedList::from_vec(vec![PointHistory::default(), PointHistory::default()]);
     for movement in moves {
-        simulate_movement(movement, &rope_p1);
+        simulate_movement(movement, &mut rope_p1);
     }
 
     // Determine the number of unique spaces the tail has moved to (part 1)
-    let tail_pos_count = rope_p1.last().unwrap().borrow_mut().visited.len();
+    let tail_pos_count = rope_p1.last().unwrap().visited.len();
     println!("[Part I] The tail has moved to {tail_pos_count} unique positions");
 
     // TODO: part2 using a rope with 10 knots
@@ -136,21 +132,20 @@ fn parse_moves(reader: &mut impl BufRead) -> Vec<MoveSpaces> {
 }
 
 // Simulates head and tail movement a certain direction and spaces
-fn simulate_movement(movement: MoveSpaces, rope: &ArenaLinkedList<RefCell<PointHistory>>) {
+fn simulate_movement(movement: MoveSpaces, rope: &mut ArenaLinkedList<PointHistory>) {
     let dir = movement.0;
     let spaces = movement.1;
-
-    // Normally Rust would not allow us to get two mutable references from the `rope` list
-    // By wrapping the individual values in RefCell we can borrow from the separately
-    // NOTE: This only disables borrow checking compile time, it can still throw at runtime!
-    let mut head = rope.first().unwrap().borrow_mut();
-    let mut tail = rope.last().unwrap().borrow_mut();
 
     // TODO: Refactor this to handle more than two items, chain moves backwards from head -> tail
 
     // Move the head in the direction, X number of spaces
     for _ in 0..spaces {
+        let head = rope.get_mut(0).unwrap();
         head.move_dir(&dir);
+
+        // Downgrade to immutable references
+        let head = rope.get(0).unwrap();
+        let tail = rope.get(1).unwrap();
 
         // If not on the same row or column, there is a diagonal distance
         let diagonal = head.x != tail.x && head.y != tail.y;
@@ -195,7 +190,9 @@ fn simulate_movement(movement: MoveSpaces, rope: &ArenaLinkedList<RefCell<PointH
             _ => None,
         };
 
+        // If the tail needs to move, do so at the end
         if let Some(dir) = move_dir {
+            let tail = rope.get_mut(1).unwrap();
             tail.move_dir(&dir);
         }
     }
