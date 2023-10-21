@@ -147,8 +147,6 @@ fn simulate_movement(movement: &MoveSpaces, rope: &mut ArenaLinkedList<PointHist
     let dir = movement.0;
     let spaces = movement.1;
 
-    // TODO: Refactor this to handle more than two items, chain moves backwards from head -> tail
-
     // Move the head and then move all following nodes relatively to their previous
     // H <- 1 <- 2 <- 3 <- 4 ... < TAIL
     for _ in 0..spaces {
