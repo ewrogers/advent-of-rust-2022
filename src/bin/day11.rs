@@ -6,8 +6,8 @@ use std::io::{BufRead, BufReader, Seek, SeekFrom};
 
 #[derive(Debug)]
 enum Operation {
-    Add(i32),
-    MultiplyBy(i32),
+    Add(i64),
+    MultiplyBy(i64),
     Square,
 }
 
@@ -15,7 +15,7 @@ enum Operation {
 struct Monkey {
     // Need to use Cell/RefCell here for dynamic borrow-checking
     // We know that we will never double-borrow the same monkey's items
-    items: RefCell<VecDeque<u32>>,
+    items: RefCell<VecDeque<u64>>,
     operation: Option<Operation>,
     test_divisible_by: u32,
     if_true_target: usize,
@@ -37,7 +37,7 @@ impl Monkey {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let file = File::open("data/day11_input_example.txt")?;
+    let file = File::open("data/day11_input.txt")?;
     let mut reader = BufReader::new(file);
 
     // Determine the amount of monkey business after 20 rounds, with worry reduction (part 1)
@@ -53,14 +53,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Determine the amount of monkey business after 10000 rounds, without worry reduction (part 2)
     let monkeys: Vec<Monkey> = read_monkey_data(&mut reader);
     let monkey_business = calc_monkey_business(&monkeys, 10_000, false);
-    println!("[Part II] The level of monkey business after 1000 rounds is {monkey_business}");
+    println!("[Part II] The level of monkey business after 10000 rounds is {monkey_business}");
 
     Ok(())
 }
 
 // Attempts to calculate the final monkey business after the specific number of rounds
 fn calc_monkey_business(monkeys: &[Monkey], rounds: usize, worry_reduction: bool) -> u64 {
-    for round in 1..=rounds {
+    for _ in 1..=rounds {
         // Each monkey takes their turn, in order
         for monkey in monkeys.iter() {
             // No items, this monkey does nothing this round
@@ -76,21 +76,29 @@ fn calc_monkey_business(monkeys: &[Monkey], rounds: usize, worry_reduction: bool
 
                 // Apply the operation to determine the new worry level
                 let worry = match monkey.operation {
-                    Some(Operation::Add(amount)) => worry + amount as u32,
-                    Some(Operation::MultiplyBy(mul)) => worry * mul as u32,
+                    Some(Operation::Add(amount)) => worry + amount as u64,
+                    Some(Operation::MultiplyBy(mul)) => worry * mul as u64,
                     Some(Operation::Square) => worry * worry,
                     _ => worry,
                 };
 
-                // Worry is reduced by a factor of 3
-                let worry = if worry_reduction { worry / 3 } else { worry };
+                // Part of Chinese-Remainder Theorem
+                // https://en.wikipedia.org/wiki/Chinese_remainder_theorem
+                // M = product of all modulo
+                // This can now be used to 'limit' our worry levels while being divisible still
+                let unique_modulo: u64 =
+                    monkeys.iter().map(|m| m.test_divisible_by as u64).product();
 
-                // TODO: Part 2 requires some modulo tricks
-                // ( a + b ) mod m = (a mod m + b mod m) mod m      \ use these to lower worry
-                // ( a * b ) mod m = (a mod m * b mod m) mod m      /
+                // If simple worry reduction is enabled, just divide by 3
+                // Otherwise, we use the CRT-derived modulo
+                let worry = if worry_reduction {
+                    worry / 3
+                } else {
+                    worry % unique_modulo
+                };
 
                 // Perform the division test and see which monkey gets the item next
-                let divisor = monkey.test_divisible_by;
+                let divisor = monkey.test_divisible_by as u64;
                 let target = match worry % divisor == 0 {
                     true => monkey.if_true_target,
                     false => monkey.if_false_target,
@@ -100,16 +108,6 @@ fn calc_monkey_business(monkeys: &[Monkey], rounds: usize, worry_reduction: bool
                 if let Some(target_monkey) = monkeys.get(target) {
                     target_monkey.items.borrow_mut().push_back(worry)
                 }
-            }
-        }
-
-        if round == 1 || round == 20 || round % 1000 == 0 {
-            println!("== After round {round} ==");
-            for (index, monkey) in monkeys.iter().enumerate() {
-                println!(
-                    "Monkey {index} inspected items {} times",
-                    monkey.inspect_count.get()
-                );
             }
         }
     }
@@ -167,7 +165,7 @@ fn read_monkey_data(reader: &mut impl BufRead) -> Vec<Monkey> {
                 // Split by comma and parse each item as a BigInt value
                 let items = items_str
                     .split(',')
-                    .map(|item| item.trim().parse::<u32>().unwrap());
+                    .map(|item| item.trim().parse::<u64>().unwrap());
                 monkey.items.borrow_mut().extend(items);
             }
             ("Operation", op_str) => {
