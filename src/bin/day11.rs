@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Determine the amount of monkey business after 20 rounds, with worry reduction (part 1)
     let monkeys: Vec<Monkey> = read_monkey_data(&mut reader);
-    let monkey_business = calc_monkey_business(&monkeys, 20, true);
+    let monkey_business = calc_monkey_business(&monkeys, 20, |worry| worry / 3);
     println!("[Part I] The level of monkey business after 20 rounds is {monkey_business}");
 
     // Re-parse the file to process part 2
@@ -52,14 +52,24 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Determine the amount of monkey business after 10000 rounds, without worry reduction (part 2)
     let monkeys: Vec<Monkey> = read_monkey_data(&mut reader);
-    let monkey_business = calc_monkey_business(&monkeys, 10_000, false);
+
+    // Part of Chinese-Remainder Theorem
+    // https://en.wikipedia.org/wiki/Chinese_remainder_theorem
+    // M = product of all modulo
+    // This can now be used to 'limit' our worry levels while being divisible by all monkeys
+    let modulo: u64 = monkeys.iter().map(|m| m.test_divisible_by as u64).product();
+
+    let monkey_business = calc_monkey_business(&monkeys, 10_000, |worry| worry % modulo);
     println!("[Part II] The level of monkey business after 10000 rounds is {monkey_business}");
 
     Ok(())
 }
 
 // Attempts to calculate the final monkey business after the specific number of rounds
-fn calc_monkey_business(monkeys: &[Monkey], rounds: usize, worry_reduction: bool) -> u64 {
+fn calc_monkey_business<F>(monkeys: &[Monkey], rounds: usize, worry_reduction: F) -> u64
+where
+    F: Fn(u64) -> u64,
+{
     for _ in 1..=rounds {
         // Each monkey takes their turn, in order
         for monkey in monkeys.iter() {
@@ -82,20 +92,8 @@ fn calc_monkey_business(monkeys: &[Monkey], rounds: usize, worry_reduction: bool
                     _ => worry,
                 };
 
-                // Part of Chinese-Remainder Theorem
-                // https://en.wikipedia.org/wiki/Chinese_remainder_theorem
-                // M = product of all modulo
-                // This can now be used to 'limit' our worry levels while being divisible still
-                let unique_modulo: u64 =
-                    monkeys.iter().map(|m| m.test_divisible_by as u64).product();
-
-                // If simple worry reduction is enabled, just divide by 3
-                // Otherwise, we use the CRT-derived modulo
-                let worry = if worry_reduction {
-                    worry / 3
-                } else {
-                    worry % unique_modulo
-                };
+                // Apply the worry reduction formula
+                let worry = worry_reduction(worry);
 
                 // Perform the division test and see which monkey gets the item next
                 let divisor = monkey.test_divisible_by as u64;
