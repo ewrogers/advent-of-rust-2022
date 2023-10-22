@@ -85,6 +85,10 @@ fn calc_monkey_business(monkeys: &[Monkey], rounds: usize, worry_reduction: bool
                 // Worry is reduced by a factor of 3
                 let worry = if worry_reduction { worry / 3 } else { worry };
 
+                // TODO: Part 2 requires some modulo tricks
+                // ( a + b ) mod m = (a mod m + b mod m) mod m      \ use these to lower worry
+                // ( a * b ) mod m = (a mod m * b mod m) mod m      /
+
                 // Perform the division test and see which monkey gets the item next
                 let divisor = monkey.test_divisible_by;
                 let target = match worry % divisor == 0 {
