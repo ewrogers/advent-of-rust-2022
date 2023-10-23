@@ -2,7 +2,12 @@
 
 The [Advent of Code 2022](https://adventofcode.com/2022) code challenges, written in Rust 🦀.
 
-Only using the [Rust Standard Library](https://doc.rust-lang.org/std/), no external crates.
+## 🚫📦 No Crates
+
+These solutions do not use any external crates, only the [Rust Standard Library](https://doc.rust-lang.org/std/).
+
+All "shared" code can be found in the `lib.rs` re-exports.
+This includes custom data structures and pathfinding algorithms.
 
 ## ⭐️ Getting Started
 
