@@ -45,7 +45,7 @@ fn read_tree_grid(reader: &mut impl BufRead) -> RowGrid<u32> {
         };
 
         // Lazy initialization of the grid, we need the first line to determine column width
-        let grid = tree_grid.get_or_insert_with(|| RowGrid::with_width(line.len()));
+        let grid = tree_grid.get_or_insert(RowGrid::with_width(line.len()));
 
         // For each digit on the line, add it as a height value to the grid
         // Since ASCII digits are 0x30 through 0x39 we can just modulo to get the value
