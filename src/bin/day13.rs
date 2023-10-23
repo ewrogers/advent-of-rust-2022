@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::fs::File;
-use std::io::{BufRead, BufReader, Cursor, Seek, SeekFrom};
+use std::io::{BufRead, BufReader, Cursor};
 
 // Potentially recursive data structure, as lists can contain lists
 #[derive(Debug, Clone)]
@@ -96,7 +96,7 @@ fn parse_packet_line(str: &str) -> Option<PacketData> {
     let mut reader = BufReader::new(cursor);
 
     // Parse the entire line as a list, skipping the opening bracket
-    reader.seek(SeekFrom::Start(1)).unwrap();
+    reader.consume(1);
     read_packet_list(&mut reader)
 }
 
