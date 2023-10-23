@@ -51,6 +51,39 @@ where
         }
     }
 
+    pub fn find<F>(&self, predicate: F) -> Option<(usize, usize)>
+    where
+        F: Fn(&T) -> bool,
+    {
+        for y in 0..self.height() {
+            for x in 0..self.width {
+                let value = &self.cells[y * self.width + x];
+                if predicate(value) {
+                    return Some((x, y));
+                }
+            }
+        }
+        None
+    }
+
+    pub fn find_all<F>(&self, predicate: F) -> Vec<(usize, usize)>
+    where
+        F: Fn(&T) -> bool,
+    {
+        let mut found = vec![];
+
+        for y in 0..self.height() {
+            for x in 0..self.width {
+                let value = &self.cells[y * self.width + x];
+                if predicate(value) {
+                    found.push((x, y))
+                }
+            }
+        }
+
+        found
+    }
+
     pub fn enumerate<F>(&self, mut func: F)
     where
         F: FnMut(usize, usize),

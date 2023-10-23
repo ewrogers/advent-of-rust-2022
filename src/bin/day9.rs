@@ -1,4 +1,4 @@
-use advent_of_rust_2022::ArenaLinkedList;
+use advent_of_rust_2022::{manhattan_distance, ArenaLinkedList};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -179,7 +179,7 @@ fn follow_the_leader(follower: &mut PointHistory, leader_x: i32, leader_y: i32) 
 
     // If the follower is only a single space behind (including diagonal), do not move it
     // Otherwise we have to move the follower based on whether it is diagonal or not
-    let distance = get_distance(leader_x, leader_y, follower.x, follower.y);
+    let distance = manhattan_distance(leader_x, leader_y, follower.x, follower.y);
     let max_distance = if diagonal { 3 } else { 2 };
     if distance < max_distance {
         return;
@@ -221,11 +221,6 @@ fn follow_the_leader(follower: &mut PointHistory, leader_x: i32, leader_y: i32) 
     if let Some(dir) = move_dir {
         follower.move_dir(&dir);
     }
-}
-
-// Calculates the Manhattan distance between two points
-fn get_distance(x1: i32, y1: i32, x2: i32, y2: i32) -> usize {
-    ((x1 - x2).unsigned_abs() + (y1 - y2).unsigned_abs()) as usize
 }
 
 // Determine a new direction based on combining a horizontal and vertical direction together
