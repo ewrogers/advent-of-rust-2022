@@ -1,4 +1,5 @@
-use advent_of_rust_2022::{astar_find_path, Point, RowGrid};
+#![warn(clippy::pedantic)]
+use advent_of_rust_2022::{find_path, Point, RowGrid};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -28,10 +29,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // Find the path from start to goal and output the number of steps (part 1)
-    let path_result = astar_find_path(&start, &goal, |from, to| calc_move_cost(&grid, from, to));
-    let path = match path_result {
-        Some(path) => path,
-        None => panic!("Unable to find path from start to goal!"),
+    let path_result = find_path(&start, &goal, |from, to| calc_move_cost(&grid, from, to));
+    let Some(path) = path_result else {
+        panic!("Unable to find path from start to goal!");
     };
 
     println!(
@@ -49,12 +49,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Determine the best (shortest) path from any start location (part 2)
     let mut shortest_path: Option<Vec<Point>> = None;
     for start in possible_starts {
-        let path_result =
-            astar_find_path(&start, &goal, |from, to| calc_move_cost(&grid, from, to));
-        let path = match path_result {
-            Some(path) => path,
-            None => continue,
-        };
+        let path_result = find_path(&start, &goal, |from, to| calc_move_cost(&grid, from, to));
+        let Some(path) = path_result else { continue };
 
         if let Some(other_path) = &shortest_path {
             if path.len() < other_path.len() {
@@ -74,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 // Calculate the movement cost from one space to another (or None if impossible move)
-fn calc_move_cost(grid: &RowGrid<Terrain>, from: &Point, to: &Point) -> Option<u32> {
+fn calc_move_cost(grid: &RowGrid<Terrain>, from: Point, to: Point) -> Option<u32> {
     // Out of bounds
     if to.x < 0 || to.y < 0 {
         return None;

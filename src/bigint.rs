@@ -12,7 +12,7 @@ pub struct BigInt {
 }
 
 impl BigInt {
-    pub fn from_value<T>(value: T) -> Self
+    pub fn from_value<T>(value: &T) -> Self
     where
         T: Add + Sub + Mul + Div + Display,
     {
@@ -21,38 +21,47 @@ impl BigInt {
         }
     }
 
-    pub fn add(&self, other: Self) -> Self {
+    #[must_use]
+    pub fn add(&self, other: &Self) -> Self {
         let sum = add_string_numbers(&self.value, &other.value);
         BigInt { value: sum }
     }
 
-    pub fn multiply_by(&self, other: Self) -> Self {
+    #[must_use]
+    pub fn multiply_by(&self, other: &Self) -> Self {
         let product = multiply_string_numbers(&self.value, &other.value);
         BigInt { value: product }
     }
 
+    #[must_use]
     pub fn squared(&self) -> Self {
         let square = multiply_string_numbers(&self.value, &self.value);
         BigInt { value: square }
     }
 
-    pub fn divide_by(&self, other: BigInt) -> Self {
+    #[must_use]
+    pub fn divide_by(&self, other: &BigInt) -> Self {
         let quotient = divide_string_numbers(&self.value, &other.value);
-        BigInt { value: quotient }
+        BigInt {
+            value: quotient.unwrap(),
+        }
     }
 
-    pub fn divisible_by(&self, divisor: u32) -> bool {
+    pub fn divisible_by(&self, divisor: u32) -> Result<bool, String> {
         if divisor == 0 {
-            return false;
+            return Ok(false);
         }
 
         let mut remainder = 0;
         for c in self.value.chars() {
-            let digit = c.to_digit(10).unwrap();
-            remainder = (remainder * 10 + digit) % divisor;
+            if let Some(digit) = c.to_digit(10) {
+                remainder = (remainder * 10 + digit) % divisor;
+            } else {
+                return Err("Invalid digit".into());
+            }
         }
 
-        remainder == 0
+        Ok(remainder == 0)
     }
 }
 
@@ -73,12 +82,12 @@ impl Display for BigInt {
 impl FromStr for BigInt {
     type Err = BigIntParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if !s.chars().all(|c| c.is_ascii_digit()) {
-            Err(BigIntParseError::InvalidCharacter)
-        } else {
+        if s.chars().all(|c| c.is_ascii_digit()) {
             Ok(Self {
                 value: s.to_string(),
             })
+        } else {
+            Err(BigIntParseError::InvalidCharacter)
         }
     }
 }
@@ -137,9 +146,9 @@ fn multiply_string_numbers(a: &str, b: &str) -> String {
         .collect()
 }
 
-fn divide_string_numbers(dividend: &str, divisor: &str) -> String {
+fn divide_string_numbers(dividend: &str, divisor: &str) -> Result<String, String> {
     if divisor == "0" {
-        panic!("Division by zero");
+        return Err("Division by zero".into());
     }
 
     let mut result: Vec<char> = Vec::new();
@@ -147,13 +156,13 @@ fn divide_string_numbers(dividend: &str, divisor: &str) -> String {
     let divisor = divisor.parse::<i128>().unwrap();
 
     for digit_char in dividend.chars() {
-        let digit = digit_char.to_digit(10).unwrap() as i128;
+        let digit = i128::from(digit_char.to_digit(10).unwrap());
         remainder = remainder * 10 + digit;
 
         let quotient_digit = remainder / divisor;
         remainder %= divisor;
 
-        result.push(char::from_digit(quotient_digit as u32, 10).unwrap());
+        result.push(char::from_digit(u32::try_from(quotient_digit).unwrap(), 10).unwrap());
     }
 
     // Remove leading zeros
@@ -161,5 +170,5 @@ fn divide_string_numbers(dividend: &str, divisor: &str) -> String {
         result.remove(0);
     }
 
-    result.iter().collect()
+    Ok(result.iter().collect())
 }

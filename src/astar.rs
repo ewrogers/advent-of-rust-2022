@@ -12,6 +12,7 @@ pub struct Point {
 }
 
 impl Point {
+    #[must_use]
     pub fn from_pos(x: i32, y: i32) -> Self {
         Self { x, y }
     }
@@ -31,6 +32,7 @@ pub struct PathNode {
 }
 
 impl PathNode {
+    #[must_use]
     pub fn new(pos: &Point, g_cost: u32, h_cost: u32) -> Self {
         Self {
             point: *pos,
@@ -39,6 +41,7 @@ impl PathNode {
         }
     }
 
+    #[must_use]
     pub fn f_cost(&self) -> u32 {
         self.g_cost + self.h_cost
     }
@@ -57,7 +60,7 @@ impl PartialOrd for PathNode {
 }
 
 // Implements the A* pathfinding algorithm, with a user-generated heuristic (or None for impassable)
-pub fn astar_find_path<G>(start: &Point, goal: &Point, cost_func: G) -> Option<Vec<Point>>
+pub fn find_path<G>(start: &Point, goal: &Point, cost_func: G) -> Option<Vec<Point>>
 where
     G: Fn(&Point, &Point) -> Option<u32>,
 {
@@ -113,6 +116,7 @@ where
 }
 
 // Calculates the manhattan distance between two points
+#[must_use]
 pub fn manhattan_distance(x1: i32, y1: i32, x2: i32, y2: i32) -> u32 {
     (x1 - x2).unsigned_abs() + (y1 - y2).unsigned_abs()
 }

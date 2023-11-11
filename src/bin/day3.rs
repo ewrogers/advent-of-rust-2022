@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -21,7 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // Determine the total priority for all common items in each rucksack (part 1)
-    let total_item_priority: u32 = rucksacks
+    let total_item_priority: u64 = rucksacks
         .iter()
         .map(|sack| {
             // The rucksack is split into two compartments, in equal halves
@@ -29,17 +30,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             let second_compartment = &sack[sack.len() / 2..];
             // Determine the common item and calculate its priority
             match get_common_item(first_compartment, second_compartment) {
-                Some(item) => get_item_priority(&item),
+                Some(item) => get_item_priority(item),
                 None => 0,
             }
         })
         .sum();
 
     // Determine the total badge priority, chunking rucksacks into groups of three (part 2)
-    let total_badge_priority: u32 = rucksacks
+    let total_badge_priority: u64 = rucksacks
         .chunks_exact(3)
         .map(|group| match get_common_badge(group) {
-            Some(badge) => get_item_priority(&badge),
+            Some(badge) => get_item_priority(badge),
             None => 0,
         })
         .sum();
@@ -71,12 +72,12 @@ fn get_common_badge(rucksacks: &[String]) -> Option<char> {
 }
 
 // Gets the priority value of an item
-fn get_item_priority(item: &char) -> u32 {
+fn get_item_priority(item: char) -> u64 {
     // Priority is essentially the one-based index of the letter within the alphabet
     static LETTERS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    match LETTERS.find(*item) {
-        Some(index) => (index + 1) as u32,
+    match LETTERS.find(item) {
+        Some(index) => (index + 1) as u64,
         None => 0,
     }
 }

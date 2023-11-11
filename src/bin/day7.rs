@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use advent_of_rust_2022::ArenaTree;
 use std::error::Error;
 use std::fs::File;
@@ -9,7 +10,7 @@ enum Term {
     ChangeToRootDirectory,
     ChangeToParentDirectory,
     ChangeDirectory(String),
-    FileListing(i64, String),
+    FileListing(usize, String),
     DirectoryListing(String),
 }
 
@@ -17,8 +18,8 @@ enum Term {
 enum FileEntry {
     #[default]
     Root,
-    File(i64, String, usize), // last param is parent node, allowing same name by parent dir
-    Directory(String, usize), // last param is parent node, allowing same name by parent dir
+    File(usize, String, usize), // last param is parent node, allowing same name by parent dir
+    Directory(String, usize),   // last param is parent node, allowing same name by parent dir
 }
 
 // Used in part 2!
@@ -55,17 +56,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
 
                 // If we've seen the directory before, switch to it otherwise we need to add it
-                current_node = match found_node {
-                    Some(dir_node) => dir_node,
-                    None => {
-                        // Insert the new directory to the tree
-                        let dir = FileEntry::Directory(target, current_node);
-                        let dir_node = file_system.find_or_add_node(dir);
+                current_node = if let Some(dir_node) = found_node {
+                    dir_node
+                } else {
+                    // Insert the new directory to the tree
+                    let dir = FileEntry::Directory(target, current_node);
+                    let dir_node = file_system.find_or_add_node(dir);
 
-                        // Set the new directory as a child and make it the current directory
-                        file_system.set_parent_child(current_node, dir_node);
-                        dir_node
-                    }
+                    // Set the new directory as a child and make it the current directory
+                    file_system.set_parent_child(current_node, dir_node);
+                    dir_node
                 };
             }
             Term::DirectoryListing(dirname) => {
@@ -84,7 +84,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 // Set the parent/child relationships with the owner directory
                 file_system.set_parent_child(current_node, file_node);
             }
-            _ => {}
+            Term::List => {}
         }
     }
 
@@ -122,7 +122,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match dir_size_to_delete {
         Some(size_to_delete) => {
-            println!("[Part II] Can delete directory with size {size_to_delete} to perform upgrade (needed = {min_needed})")
+            println!("[Part II] Can delete directory with size {size_to_delete} to perform upgrade (needed = {min_needed})");
         }
         None => println!("Unable to solve part 2, no size to delete was found!"),
     }
@@ -152,13 +152,14 @@ fn parse_terminal(reader: &mut impl BufRead) -> Vec<Term> {
             ["$", "cd", ".."] => Term::ChangeToParentDirectory,
             ["$", "cd", dirname] => Term::ChangeDirectory(dirname.to_string()),
             ["dir", dirname] => Term::DirectoryListing(dirname.to_string()),
-            [size_str, filename] => match size_str.parse::<i64>() {
-                Ok(size) => Term::FileListing(size, filename.to_string()),
-                Err(_) => {
+            [size_str, filename] => {
+                if let Ok(size) = size_str.parse::<usize>() {
+                    Term::FileListing(size, filename.to_string())
+                } else {
                     println!("Invalid file size: {size_str}");
                     continue;
                 }
-            },
+            }
             _ => {
                 println!("Unknown command: {line}");
                 continue;
@@ -181,10 +182,10 @@ fn print_file_tree(tree: &ArenaTree<FileEntry>, index: usize) {
         match &node.value {
             FileEntry::Root => println!("{indent}- / (dir, size={total_size})"),
             FileEntry::Directory(dirname, _) => {
-                println!("{indent}- {dirname}/ (dir, size={total_size})")
+                println!("{indent}- {dirname}/ (dir, size={total_size})");
             }
             FileEntry::File(size, filename, _) => {
-                println!("{indent}- {filename} (file, size={size})")
+                println!("{indent}- {filename} (file, size={size})");
             }
         }
     });

@@ -11,6 +11,7 @@ impl<T> RowGrid<T>
 where
     T: Clone,
 {
+    #[must_use]
     pub fn with_width(width: usize) -> Self {
         Self {
             width,
@@ -18,10 +19,12 @@ where
         }
     }
 
+    #[must_use]
     pub fn height(&self) -> usize {
         self.cells.len() / self.width
     }
 
+    #[must_use]
     pub fn cell(&self, x: usize, y: usize) -> Option<&T> {
         if x < self.width {
             self.cells.get(y * self.width + x)
@@ -30,6 +33,7 @@ where
         }
     }
 
+    #[must_use]
     pub fn row(&self, y: usize) -> Option<&[T]> {
         if y < self.height() {
             let start = y * self.width;
@@ -40,6 +44,7 @@ where
         }
     }
 
+    #[must_use]
     pub fn column(&self, x: usize) -> Option<Vec<&T>> {
         if x < self.width {
             let col = (0..self.height())
@@ -76,7 +81,7 @@ where
             for x in 0..self.width {
                 let value = &self.cells[y * self.width + x];
                 if predicate(value) {
-                    found.push((x, y))
+                    found.push((x, y));
                 }
             }
         }

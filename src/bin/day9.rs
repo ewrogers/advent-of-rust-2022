@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use advent_of_rust_2022::{manhattan_distance, ArenaLinkedList};
 use std::error::Error;
 use std::fs::File;
@@ -41,7 +42,7 @@ impl PointHistory {
         }
     }
 
-    pub fn move_dir(&mut self, direction: &Direction) {
+    pub fn move_dir(&mut self, direction: Direction) {
         let new_pos = match direction {
             Direction::North => (self.x, self.y + 1),
             Direction::South => (self.x, self.y - 1),
@@ -57,7 +58,7 @@ impl PointHistory {
         self.y = new_pos.1;
 
         if !self.visited.contains(&new_pos) {
-            self.visited.push(new_pos)
+            self.visited.push(new_pos);
         }
     }
 }
@@ -72,7 +73,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Simulate the rope with just a head + tail (part 1)
     let mut rope_p1: ArenaLinkedList<PointHistory> =
         ArenaLinkedList::from_vec(vec![PointHistory::default(), PointHistory::default()]);
-    for movement in moves.iter() {
+    for movement in &moves {
         simulate_movement(movement, &mut rope_p1);
     }
 
@@ -85,7 +86,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for _ in 0..10 {
         rope_p2.push(PointHistory::default());
     }
-    for movement in moves.iter() {
+    for movement in &moves {
         simulate_movement(movement, &mut rope_p2);
     }
 
@@ -116,24 +117,23 @@ fn parse_moves(reader: &mut impl BufRead) -> Vec<MoveSpaces> {
         }
 
         // Get the direction based on the letter
-        let direction = match tokens[0] {
-            "U" => Direction::North,
-            "D" => Direction::South,
-            "L" => Direction::West,
-            "R" => Direction::East,
+        let direction = match tokens.first() {
+            Some(&"U") => Direction::North,
+            Some(&"D") => Direction::South,
+            Some(&"L") => Direction::West,
+            Some(&"R") => Direction::East,
             _ => {
-                println!("Invalid direction: {}", tokens[0]);
+                println!("Invalid direction: {:?}", tokens.first());
                 continue;
             }
         };
 
         // Parse the number of spaces as an integer
-        let spaces: i32 = match tokens[1].parse() {
-            Ok(value) => value,
-            Err(_) => {
-                println!("Invalid number of spaces: {}", tokens[1]);
-                continue;
-            }
+        let spaces: i32 = if let Ok(value) = tokens[1].parse() {
+            value
+        } else {
+            println!("Invalid number of spaces: {}", tokens[1]);
+            continue;
         };
 
         moves.push(MoveSpaces(direction, spaces));
@@ -152,7 +152,7 @@ fn simulate_movement(movement: &MoveSpaces, rope: &mut ArenaLinkedList<PointHist
     for _ in 0..spaces {
         // The head moves based on the explicit movement
         let head = rope.get_mut(0).unwrap();
-        head.move_dir(&dir);
+        head.move_dir(dir);
 
         for i in 0..rope.len() {
             // We only need the leader's position for the follower
@@ -162,9 +162,8 @@ fn simulate_movement(movement: &MoveSpaces, rope: &mut ArenaLinkedList<PointHist
             };
 
             // We need a mutable reference to the follower so we can move them
-            let follower = match rope.get_mut(i + 1) {
-                Some(node) => node,
-                None => break,
+            let Some(follower) = rope.get_mut(i + 1) else {
+                break;
             };
 
             follow_the_leader(follower, leader_pos.0, leader_pos.1);
@@ -210,21 +209,21 @@ fn follow_the_leader(follower: &mut PointHistory, leader_x: i32, leader_y: i32) 
     };
 
     // Combine directions for both horizontal and vertical movement
-    let move_dir = match (&h_dir, &v_dir) {
-        (Some(h), None) => Some(*h),
-        (None, Some(v)) => Some(*v),
+    let move_dir = match (h_dir, v_dir) {
+        (Some(h), None) => Some(h),
+        (None, Some(v)) => Some(v),
         (Some(h), Some(v)) => Some(combine_dir(h, v)),
         _ => None,
     };
 
     // If the follower needs to move, do so
     if let Some(dir) = move_dir {
-        follower.move_dir(&dir);
+        follower.move_dir(dir);
     }
 }
 
 // Determine a new direction based on combining a horizontal and vertical direction together
-fn combine_dir(horizontal: &Direction, vertical: &Direction) -> Direction {
+fn combine_dir(horizontal: Direction, vertical: Direction) -> Direction {
     match (horizontal, vertical) {
         (Direction::East, Direction::North) => Direction::Northeast,
         (Direction::East, Direction::South) => Direction::Southeast,

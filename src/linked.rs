@@ -15,10 +15,12 @@ pub struct LinkedListNode<T> {
 }
 
 impl<T> ArenaLinkedList<T> {
+    #[must_use]
     pub fn new() -> Self {
         Self { nodes: Vec::new() }
     }
 
+    #[must_use]
     pub fn from_vec(vec: Vec<T>) -> Self {
         let mut list = Self {
             nodes: Vec::with_capacity(vec.len()),
@@ -31,23 +33,28 @@ impl<T> ArenaLinkedList<T> {
         list
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.nodes.len() < 1
     }
 
+    #[must_use]
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
 
+    #[must_use]
     pub fn head(&self) -> Option<&LinkedListNode<T>> {
         self.nodes.first()
     }
 
+    #[must_use]
     pub fn tail(&self) -> Option<&LinkedListNode<T>> {
         self.nodes.last()
     }
 
     // Gets the first value of the list
+    #[must_use]
     pub fn first(&self) -> Option<&T> {
         match self.nodes.first() {
             Some(node) => Some(&node.value),
@@ -56,6 +63,7 @@ impl<T> ArenaLinkedList<T> {
     }
 
     // Gets the last value of the list
+    #[must_use]
     pub fn last(&self) -> Option<&T> {
         match self.nodes.last() {
             Some(node) => Some(&node.value),
@@ -64,6 +72,7 @@ impl<T> ArenaLinkedList<T> {
     }
 
     // Gets an immutable reference to a value within the list
+    #[must_use]
     pub fn get(&self, index: usize) -> Option<&T> {
         match self.nodes.get(index) {
             Some(node) => Some(&node.value),
@@ -72,6 +81,7 @@ impl<T> ArenaLinkedList<T> {
     }
 
     // Gets a mutable reference to a value within the list
+    #[must_use]
     pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
         match self.nodes.get_mut(index) {
             Some(node) => Some(&mut node.value),
@@ -97,10 +107,7 @@ impl<T> ArenaLinkedList<T> {
 
     // Pops the last value off the list, returning it
     pub fn pop(&mut self) -> Option<T> {
-        let node = match self.nodes.pop() {
-            Some(node) => node,
-            None => return None,
-        };
+        let node = self.nodes.pop()?;
 
         let last = self.nodes.len() - 1;
         self.nodes[last].next = None;
@@ -113,9 +120,8 @@ impl<T> ArenaLinkedList<T> {
     where
         F: FnMut(&T),
     {
-        let mut current = match self.nodes.first() {
-            Some(node) => node,
-            None => return,
+        let Some(mut current) = self.nodes.first() else {
+            return;
         };
 
         loop {
@@ -133,9 +139,8 @@ impl<T> ArenaLinkedList<T> {
     where
         F: FnMut(&T),
     {
-        let mut current = match self.nodes.last() {
-            Some(node) => node,
-            None => return,
+        let Some(mut current) = self.nodes.last() else {
+            return;
         };
 
         loop {

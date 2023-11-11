@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -9,21 +10,13 @@ struct SectorRange {
 
 impl SectorRange {
     pub fn parse(string: &str) -> Option<Self> {
-        let (start, end) = match string.split_once('-') {
-            Some(tuple) => tuple,
-            None => return None,
+        let (start, end) = string.split_once('-')?;
+        let Ok(start) = start.parse::<u32>() else {
+            return None;
         };
-
-        let start = match start.parse::<u32>() {
-            Ok(value) => value,
-            Err(_) => return None,
+        let Ok(end) = end.parse::<u32>() else {
+            return None;
         };
-
-        let end = match end.parse::<u32>() {
-            Ok(value) => value,
-            Err(_) => return None,
-        };
-
         Some(SectorRange { start, end })
     }
 }
@@ -45,21 +38,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
 
         // Attempt to split into first and second range, skip if invalid
-        let (first_range, second_range) = match line.split_once(',') {
-            Some(tuple) => tuple,
-            None => continue,
+        let Some((first_range, second_range)) = line.split_once(',') else {
+            continue;
         };
 
         // Attempt to parse the first range, skip if invalid
-        let first_range = match SectorRange::parse(first_range) {
-            Some(range) => range,
-            None => continue,
+        let Some(first_range) = SectorRange::parse(first_range) else {
+            continue;
         };
 
         // Attempt to parse the second range, skip if invalid
-        let second_range = match SectorRange::parse(second_range) {
-            Some(range) => range,
-            None => continue,
+        let Some(second_range) = SectorRange::parse(second_range) else {
+            continue;
         };
 
         let assignment = Assignment(first_range, second_range);

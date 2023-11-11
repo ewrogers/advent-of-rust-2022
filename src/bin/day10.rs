@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use std::collections::VecDeque;
 use std::error::Error;
 use std::fs::File;
@@ -6,13 +7,13 @@ use std::io::{BufRead, BufReader};
 #[derive(Debug, Copy, Clone)]
 enum Instruction {
     NoOp,
-    Add(i32),
+    Add(i64),
 }
 
 #[derive(Debug)]
 struct Cpu {
-    register_x: i32,
-    cycle: i32,
+    register_x: i64,
+    cycle: u32,
     busy: u32,
     instruction: Option<Instruction>,
 }
@@ -31,8 +32,8 @@ impl Cpu {
         self.busy > 0
     }
 
-    pub fn signal_strength(&self) -> i32 {
-        self.register_x * self.cycle
+    pub fn signal_strength(&self) -> i64 {
+        self.register_x * i64::from(self.cycle)
     }
 
     pub fn begin_instruction(&mut self, instruction: Instruction) {
@@ -53,7 +54,7 @@ impl Cpu {
         // If we are no longer busy, finish performing the instruction and clear state
         if !self.is_busy() {
             if let Some(Instruction::Add(amount)) = self.instruction {
-                self.register_x += amount
+                self.register_x += amount;
             }
             self.instruction = None;
         }
@@ -64,11 +65,11 @@ impl Cpu {
 }
 
 // These are the key cycle numbers to report & sum signal strengths
-const KEY_CYCLES: [i32; 6] = [20, 60, 100, 140, 180, 220];
+const KEY_CYCLES: [u32; 6] = [20, 60, 100, 140, 180, 220];
 
 // CRT dimensions in pixels for part 2
-const SCREEN_WIDTH: usize = 40;
-const SCREEN_HEIGHT: usize = 6;
+const SCREEN_WIDTH: u32 = 40;
+const SCREEN_HEIGHT: u32 = 6;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let file = File::open("data/day10_input.txt")?;
@@ -81,11 +82,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut cpu = Cpu::new();
 
     // Initialize a frame buffer for the pixels to be displayed (part 2)
-    let mut frame_buffer: Vec<char> = vec!['.'; SCREEN_WIDTH * SCREEN_HEIGHT];
+    let mut frame_buffer: Vec<char> = vec!['.'; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize];
 
     // Total up the signal strength during key cycles (part 1)
     let mut total_signal_strength = 0;
-    while cpu.cycle <= frame_buffer.len() as i32 {
+    while cpu.cycle <= u32::try_from(frame_buffer.len()).unwrap() {
         if !cpu.is_busy() && !instructions.is_empty() {
             let next = instructions.pop_front().unwrap();
             cpu.begin_instruction(next);
@@ -98,19 +99,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                 cpu.cycle,
                 cpu.register_x,
                 cpu.signal_strength()
-            )
+            );
         }
 
         // The pixel is lit if the register X is within +/- 1 pixel of the current cycle
         let sprite_position = cpu.register_x;
         let pixel_index = (cpu.cycle - 1) as usize;
-        let h_index = (cpu.cycle - 1) % SCREEN_WIDTH as i32;
+        let h_index = i64::from((cpu.cycle - 1) % SCREEN_WIDTH);
         let is_pixel_lit = (h_index - sprite_position).unsigned_abs() < 2;
 
-        frame_buffer[pixel_index] = match is_pixel_lit {
-            true => '#',
-            false => ' ',
-        };
+        frame_buffer[pixel_index] = if is_pixel_lit { '#' } else { ' ' };
 
         cpu.tick();
     }
@@ -121,8 +119,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("[Part II] This is the rendered CRT frame buffer...");
     for y in 0..SCREEN_HEIGHT {
         for x in 0..SCREEN_WIDTH {
-            let pixel_index = y * SCREEN_WIDTH + x;
-            print!("{}", frame_buffer[pixel_index])
+            let pixel_index = (y * SCREEN_WIDTH + x) as usize;
+            print!("{}", frame_buffer[pixel_index]);
         }
         println!();
     }
@@ -148,13 +146,14 @@ fn parse_instructions(reader: &mut impl BufRead) -> VecDeque<Instruction> {
         // Parse each instruction
         let instruction = match tokens[..] {
             ["noop"] => Instruction::NoOp,
-            ["addx", str_val] => match str_val.parse() {
-                Ok(amount) => Instruction::Add(amount),
-                Err(_) => {
+            ["addx", str_val] => {
+                if let Ok(amount) = str_val.parse() {
+                    Instruction::Add(amount)
+                } else {
                     println!("Invalid addx instruction: {line}");
                     continue;
                 }
-            },
+            }
             _ => {
                 println!("Invalid instruction: {line}");
                 continue;

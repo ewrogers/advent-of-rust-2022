@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use advent_of_rust_2022::RowGrid;
 use std::error::Error;
 use std::fs::File;
@@ -33,8 +34,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 // Attempts to read the input as a grid of row data (tree heights)
-fn read_tree_grid(reader: &mut impl BufRead) -> RowGrid<u32> {
-    let mut tree_grid: Option<RowGrid<u32>> = None;
+fn read_tree_grid(reader: &mut impl BufRead) -> RowGrid<u8> {
+    let mut tree_grid: Option<RowGrid<u8>> = None;
 
     // Read each line and parse it as a row of tree heights, skipping empty lines
     for line in reader.lines() {
@@ -49,7 +50,7 @@ fn read_tree_grid(reader: &mut impl BufRead) -> RowGrid<u32> {
 
         // For each digit on the line, add it as a height value to the grid
         // Since ASCII digits are 0x30 through 0x39 we can just modulo to get the value
-        let row: Vec<u32> = line.bytes().map(|digit| (digit % 0x30) as u32).collect();
+        let row: Vec<u8> = line.bytes().map(|digit| (digit % 0x30)).collect();
 
         grid.push_row(row);
     }
@@ -58,7 +59,7 @@ fn read_tree_grid(reader: &mut impl BufRead) -> RowGrid<u32> {
 }
 
 // Determines if a tree is visible at the x/y location within the grid
-fn is_tree_visible(grid: &RowGrid<u32>, x: usize, y: usize) -> bool {
+fn is_tree_visible(grid: &RowGrid<u8>, x: usize, y: usize) -> bool {
     // Assume any perimeter tree is visible
     if x == 0 || x >= grid.width - 1 {
         return true;
@@ -74,15 +75,11 @@ fn is_tree_visible(grid: &RowGrid<u32>, x: usize, y: usize) -> bool {
     };
 
     // Get the row that the tree is located within
-    let row = match grid.row(y) {
-        Some(row) => row,
-        None => return false,
-    };
+    let Some(row) = grid.row(y) else { return false };
 
     // Get the column that the tree is located within
-    let column = match grid.column(x) {
-        Some(col) => col,
-        None => return false,
+    let Some(column) = grid.column(x) else {
+        return false;
     };
 
     // Check from the left edge, if any tree occludes it
@@ -102,7 +99,7 @@ fn is_tree_visible(grid: &RowGrid<u32>, x: usize, y: usize) -> bool {
 }
 
 // Attempts to calculate the scenic score from the x/y location
-fn calc_scenic_score(grid: &RowGrid<u32>, x: usize, y: usize) -> u32 {
+fn calc_scenic_score(grid: &RowGrid<u8>, x: usize, y: usize) -> u32 {
     let tree = match grid.cell(x, y) {
         Some(val) => *val,
         None => return 0,

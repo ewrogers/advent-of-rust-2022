@@ -1,6 +1,10 @@
+#![warn(clippy::pedantic)]
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
+
+const PACKET_HEADER_SIZE: usize = 4;
+const MESSAGE_HEADER_SIZE: usize = 14;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut file = File::open("data/day6_input.txt")?;
@@ -11,21 +15,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         .expect("Unable to read input file");
 
     // Find the start of the packet (part 1)
-    let start_of_packet = match find_start_marker(&message, 4) {
-        Some(position) => position,
-        None => {
-            println!("Unable to find start of packet");
-            return Ok(());
-        }
+    let Some(start_of_packet) = find_start_marker(&message, PACKET_HEADER_SIZE) else {
+        println!("Unable to find start of packet");
+        return Ok(());
     };
 
     // Find the start of the message (part 2)
-    let start_of_message = match find_start_marker(&message, 14) {
-        Some(position) => position,
-        None => {
-            println!("Unable to find start of message");
-            return Ok(());
-        }
+    let Some(start_of_message) = find_start_marker(&message, MESSAGE_HEADER_SIZE) else {
+        println!("Unable to find start of message");
+        return Ok(());
     };
 
     println!("[Part I] First packet starts after {start_of_packet} characters");

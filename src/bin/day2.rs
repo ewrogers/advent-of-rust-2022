@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use crate::Outcome::{Draw, Loss, Win};
 use crate::Shape::{Paper, Rock, Scissors};
 use std::error::Error;
@@ -55,40 +56,31 @@ fn main() -> Result<(), Box<dyn Error>> {
         let line = line.unwrap();
 
         // Attempt to split into two column values, skip if invalid line
-        let (them, you) = match line.split_once(' ') {
-            Some(tuple) => tuple,
-            _ => {
-                println!("Invalid line: {}", &line);
-                continue;
-            }
+        let Some((them, you)) = line.split_once(' ') else {
+            println!("Invalid line: {}", &line);
+            continue;
         };
 
         // Parse the shape that the opponent is playing
-        let their_shape = match Shape::parse(them) {
-            Some(shape) => shape,
-            None => continue,
+        let Some(their_shape) = Shape::parse(them) else {
+            continue;
         };
 
         // Parse the shape that you are playing (part 1 only)
-        let your_shape = match Shape::parse(you) {
-            Some(shape) => shape,
-            None => continue,
+        let Some(your_shape) = Shape::parse(you) else {
+            continue;
         };
 
         // Parse the desired outcome for you (part 2 only)
-        let desired_outcome = match Outcome::parse(you) {
-            Some(outcome) => outcome,
-            None => continue,
+        let Some(desired_outcome) = Outcome::parse(you) else {
+            continue;
         };
 
         // Determine the shape needed to play for the desired outcome (part 2 only)
         let desired_shape = match (&their_shape, &desired_outcome) {
-            (Rock, Win) => Paper,
-            (Paper, Win) => Scissors,
-            (Scissors, Win) => Rock,
-            (Rock, Loss) => Scissors,
-            (Paper, Loss) => Rock,
-            (Scissors, Loss) => Paper,
+            (Rock, Win) | (Scissors, Loss) => Paper,
+            (Paper, Win) | (Rock, Loss) => Scissors,
+            (Scissors, Win) | (Paper, Loss) => Rock,
             _ => their_shape.clone(),
         };
 

@@ -41,11 +41,13 @@ impl<T> ArenaTree<T>
 where
     T: PartialEq,
 {
+    #[must_use]
     pub fn new() -> Self {
         Self { nodes: Vec::new() }
     }
 
     // Gets the number of nodes in the tree
+    #[must_use]
     pub fn size(&self) -> usize {
         self.nodes.len()
     }
@@ -91,7 +93,7 @@ where
     where
         F: Fn(&TreeNode<T>, usize),
     {
-        self.traverse_with_depth(index, visit, 0)
+        self.traverse_with_depth(index, visit, 0);
     }
 
     fn traverse_with_depth<F>(&self, index: usize, visit: &F, depth: usize)

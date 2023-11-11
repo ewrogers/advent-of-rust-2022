@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use crate::Instruction::MoveCrate;
 use std::error::Error;
 use std::fs::File;
@@ -14,10 +15,10 @@ enum Instruction {
 impl Instruction {
     pub fn parse(line: &str) -> Option<Self> {
         let tokens: Vec<&str> = line.split(' ').collect();
-        match tokens[0] {
+        match tokens.first() {
             // Move command requires `count`, `to`, and `from` values
             // EX: move 2 from 5 to 9
-            "move" if tokens.len() >= 6 => {
+            Some(&"move") if tokens.len() >= 6 => {
                 // Only create the move command if all values were parsed OK
                 match (tokens[1].parse(), tokens[3].parse(), tokens[5].parse()) {
                     (Ok(count), Ok(from), Ok(to)) => Some(MoveCrate { count, from, to }),
@@ -38,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let instructions = read_instructions(&mut reader);
 
     // Make a deep copy of the initial stacks for part 2
-    let mut stacks_p2: Vec<Vec<String>> = stacks_p1.to_vec();
+    let mut stacks_p2: Vec<Vec<String>> = stacks_p1.clone();
 
     for inst in instructions {
         match inst {
@@ -82,7 +83,7 @@ fn read_initial_stacks(reader: &mut impl BufRead) -> Vec<Vec<String>> {
         for (stack_index, char) in line.chars().skip(1).step_by(4).enumerate() {
             // Ensure the stack exists in the collection
             while stacks.len() <= stack_index {
-                stacks.push(Vec::with_capacity(100))
+                stacks.push(Vec::with_capacity(100));
             }
 
             // Build the stack from the "top-down", newer entries are last out
