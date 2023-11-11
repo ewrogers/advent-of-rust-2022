@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // Find the path from start to goal and output the number of steps (part 1)
-    let path_result = find_path(&start, &goal, |from, to| calc_move_cost(&grid, from, to));
+    let path_result = find_path(&start, &goal, |from, to| calc_move_cost(&grid, *from, *to));
     let Some(path) = path_result else {
         panic!("Unable to find path from start to goal!");
     };
@@ -49,7 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Determine the best (shortest) path from any start location (part 2)
     let mut shortest_path: Option<Vec<Point>> = None;
     for start in possible_starts {
-        let path_result = find_path(&start, &goal, |from, to| calc_move_cost(&grid, from, to));
+        let path_result = find_path(&start, &goal, |from, to| calc_move_cost(&grid, *from, *to));
         let Some(path) = path_result else { continue };
 
         if let Some(other_path) = &shortest_path {

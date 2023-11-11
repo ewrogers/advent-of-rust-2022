@@ -14,19 +14,18 @@ enum PacketData {
 impl Display for PacketData {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            PacketData::Integer(value) => write!(f, "{}", value),
+            PacketData::Integer(value) => write!(f, "{value}"),
             PacketData::List(items) => {
                 write!(f, "[")?;
                 for (index, item) in items.iter().enumerate() {
                     if index > 0 {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{}", item)?;
+                    write!(f, "{item}")?;
                 }
                 write!(f, "]")?;
                 Ok(())
             }
-            _ => Ok(()),
         }
     }
 }
@@ -48,7 +47,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let pairs = read_packet_pairs(&mut reader);
 
     for pair in pairs {
-        println!("{}", pair);
+        println!("{pair}");
         println!();
     }
 
@@ -154,12 +153,11 @@ fn read_packet_integer(reader: &mut impl BufRead) -> Option<PacketData> {
         match buf[0] as char {
             // Comma or closing bracket means end of the integer, we can parse the digits
             ',' | ']' => {
-                return match digits.parse() {
-                    Ok(number) => Some(PacketData::Integer(number)),
-                    Err(_) => {
-                        println!("Invalid integer: {digits}");
-                        None
-                    }
+                return if let Ok(number) = digits.parse() {
+                    Some(PacketData::Integer(number))
+                } else {
+                    println!("Invalid integer: {digits}");
+                    None
                 }
             }
             // Append any digits to the buffer
