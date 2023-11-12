@@ -152,4 +152,23 @@ where
     pub fn set_cell(&mut self, x: usize, y: usize, value: T) {
         self.cells[y * self.width + x] = value;
     }
+
+    #[must_use]
+    pub fn find_all<F>(&self, predicate: F) -> Vec<(usize, usize)>
+    where
+        F: Fn(&T) -> bool,
+    {
+        let mut found = vec![];
+
+        for y in 0..self.height() {
+            for x in 0..self.width {
+                let value = &self.cells[y * self.width + x];
+                if predicate(value) {
+                    found.push((x, y));
+                }
+            }
+        }
+
+        found
+    }
 }
