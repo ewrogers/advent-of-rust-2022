@@ -1,4 +1,7 @@
 #![warn(clippy::pedantic)]
+
+use std::cmp::Ordering;
+use std::collections::VecDeque;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::fs::File;
@@ -41,16 +44,23 @@ impl Display for PacketPair {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let file = File::open("data/day13_input_example.txt")?;
+    let file = File::open("data/day13_input.txt")?;
     let mut reader = BufReader::new(file);
 
     let pairs = read_packet_pairs(&mut reader);
+    let mut correct_indices: Vec<u64> = Vec::with_capacity(1000);
 
-    for pair in pairs {
-        println!("{pair}");
-        println!();
+    for (index, pair) in pairs.iter().enumerate() {
+        println!("== Pair {} == ", index + 1);
+        if is_correct_order(&pair.0, &pair.1, None).unwrap_or_default() {
+            correct_indices.push((index + 1) as u64);
+        }
     }
+    println!();
 
+    // Sum all of the correct indices (part 1)
+    let part1_sum: u64 = correct_indices.iter().sum();
+    println!("[Part I] The sum of the correct indices is {part1_sum}");
     Ok(())
 }
 
@@ -97,7 +107,14 @@ fn parse_packet_line(str: &str) -> Option<PacketData> {
 
     // Parse the entire line as a list, skipping the opening bracket
     reader.consume(1);
-    read_packet_list(&mut reader)
+    let result = read_packet_list(&mut reader);
+
+    // Unwrap the outer list to avoid [[nesting]]
+    if let Some(PacketData::List(list)) = result {
+        list.first().cloned()
+    } else {
+        result
+    }
 }
 
 // Attempts to read a list, advancing the position (returns None if parsing failed)
@@ -110,9 +127,9 @@ fn read_packet_list(reader: &mut impl BufRead) -> Option<PacketData> {
             break;
         }
 
-        match buf[0] as char {
+        match buf.first().map(|raw| *raw as char) {
             // Start of a nested list, read it recursively
-            '[' => {
+            Some('[') => {
                 reader.consume(1);
                 match read_packet_list(reader) {
                     Some(list) => items.push(list),
@@ -120,20 +137,21 @@ fn read_packet_list(reader: &mut impl BufRead) -> Option<PacketData> {
                 }
             }
             // End of the list, return the finished list
-            ']' => {
+            Some(']') => {
                 reader.consume(1);
                 return Some(PacketData::List(items));
             }
-            ',' => reader.consume(1),
+            Some(',') => reader.consume(1),
             // If encountered a digit, attempt to parse a packet integer
-            c if c.is_ascii_digit() => match read_packet_integer(reader) {
+            Some(c) if c.is_ascii_digit() => match read_packet_integer(reader) {
                 Some(integer) => items.push(integer),
                 None => return None,
             },
-            c => {
+            Some(c) => {
                 println!("Unexpected token: {c}");
                 return None;
             }
+            None => return None,
         }
     }
 
@@ -176,5 +194,73 @@ fn read_packet_integer(reader: &mut impl BufRead) -> Option<PacketData> {
     match digits.parse() {
         Ok(number) => Some(PacketData::Integer(number)),
         Err(_) => None,
+    }
+}
+
+// Compares two packet data items and determines if they are in the right order
+fn is_correct_order(left: &PacketData, right: &PacketData, indent: Option<usize>) -> Option<bool> {
+    let indent_size = indent.unwrap_or_default();
+    let indent = " ".repeat(indent_size);
+    let indent_more = " ".repeat(indent_size + 2);
+
+    println!("{indent}- Compare {left} vs {right}");
+
+    match (left, right) {
+        // Both are lists, compare recursively through each item
+        (PacketData::List(left_items), PacketData::List(right_items)) => {
+            // Convert into queue since we need to pop from the front
+            let mut left_items = VecDeque::from(left_items.clone());
+            let mut right_items = VecDeque::from(right_items.clone());
+
+            loop {
+                // Take an item from each side and compare
+                match (left_items.pop_front(), right_items.pop_front()) {
+                    (Some(left), Some(right)) => {
+                        if let Some(result) = is_correct_order(&left, &right, Some(indent_size + 2))
+                        {
+                            return Some(result);
+                        }
+                    }
+                    // Both lists ran out at the same time, indeterminate
+                    (None, None) => return None,
+                    // Left side ran out of items -- correct order
+                    (None, _) => {
+                        println!("{indent_more}- Left side ran out of items, so inputs are in the correct order");
+                        return Some(true);
+                    }
+                    // Right side ran out of items -- incorrect order
+                    (_, None) => {
+                        println!("{indent_more}- Right side ran out of items, so inputs are NOT in the correct order");
+                        return Some(false);
+                    }
+                }
+            }
+        }
+        // Both are integers, compare to see which side is greater
+        (PacketData::Integer(left), PacketData::Integer(right)) => match left.cmp(right) {
+            Ordering::Less => {
+                println!("{indent_more}- Left side is smaller, so inputs are in the correct order");
+                Some(true)
+            }
+            Ordering::Greater => {
+                println!(
+                    "{indent_more}- Right side is smaller, so inputs are NOT in the correct order"
+                );
+                Some(false)
+            }
+            Ordering::Equal => None,
+        },
+        // The left side is an integer, right side is a list -- convert left to list and retry
+        (PacketData::Integer(value), PacketData::List(_)) => {
+            println!("{indent_more}- Mixed types; convert left to [{value}] and retry comparison");
+            let left = PacketData::List(vec![left.clone()]);
+            is_correct_order(&left, right, Some(indent_size + 2))
+        }
+        // The left side is a list, right side is an integer -- convert right to list and retry
+        (PacketData::List(_), PacketData::Integer(value)) => {
+            println!("{indent_more}- Mixed types; convert right to [{value}] and retry comparison");
+            let right = PacketData::List(vec![right.clone()]);
+            is_correct_order(left, &right, Some(indent_size + 2))
+        }
     }
 }
