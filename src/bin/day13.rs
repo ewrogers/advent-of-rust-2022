@@ -59,11 +59,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut correct_indices: Vec<usize> = Vec::with_capacity(1000);
 
     // Display the evaluation of each packet pair
-    for (index, packet) in packets.iter().step_by(2).enumerate() {
+    for (index, packet) in packets.iter().enumerate().step_by(2) {
         let next_packet = packets.get(index + 1).unwrap();
         let pair_number = (index / 2) + 1;
 
-        println!("== Pair {pair_number} == ",);
+        println!("== Pair {pair_number} == ");
         if is_correct_order(packet, next_packet, None).unwrap_or_default() {
             correct_indices.push(pair_number);
         }
