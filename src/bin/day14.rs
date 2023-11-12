@@ -1,3 +1,5 @@
+#![warn(clippy::pedantic)]
+
 use advent_of_rust_2022::{Point, UniformGrid};
 use std::collections::VecDeque;
 use std::error::Error;
@@ -40,8 +42,12 @@ impl Display for ScanTrace {
     }
 }
 
+const SAND_SPAWN_X: i32 = 500;
+const SAND_SPAWN_Y: i32 = 0;
+
+#[allow(clippy::cast_sign_loss)]
 fn main() -> Result<(), Box<dyn Error>> {
-    let file = File::open("data/day14_input_example.txt")?;
+    let file = File::open("data/day14_input.txt")?;
     let mut reader = BufReader::new(file);
 
     // Load all the scan traces from input file
@@ -53,9 +59,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         add_rock_path(&mut terrain_grid, scan_trace);
     }
 
+    // Attempt to spawn sand until it cannot settle any longer
+    let mut sand_count: usize = 0;
+    while let Some(point) = try_place_sand(&terrain_grid, Point::new(SAND_SPAWN_X, SAND_SPAWN_Y)) {
+        terrain_grid.set_cell(point.x as usize, point.y as usize, Terrain::Sand);
+        sand_count += 1;
+    }
+
+    // Visualize the terrain grid for debugging
     println!("Terrain Grid");
     println!("{}", "-".repeat(60));
     visualize_grid(&terrain_grid);
+    println!();
+
+    // Display how many sand units had fallen (part 1)
+    println!("[Part I] There were {sand_count} units of sand that fell");
     Ok(())
 }
 
@@ -93,13 +111,12 @@ fn read_scan_traces(reader: &mut impl BufRead) -> Vec<ScanTrace> {
             })
             .collect();
 
-        scans.push(ScanTrace { points })
+        scans.push(ScanTrace { points });
     }
 
     scans
 }
 
-#[allow(dead_code)]
 fn visualize_grid(grid: &UniformGrid<Terrain>) {
     let rocks = grid.find_all(|x| *x == Terrain::Rock);
     let min_x = rocks.iter().map(|&(x, _)| x).min().unwrap_or_default();
@@ -127,8 +144,7 @@ fn visualize_grid(grid: &UniformGrid<Terrain>) {
     for y in 0..=max_y {
         print!(" {y: >3} ");
         for x in min_x..=max_x {
-            // Sand spawns at 500,0
-            if x == 500 && y == 0 {
+            if x == SAND_SPAWN_X as usize && y == SAND_SPAWN_Y as usize {
                 print!("+");
             } else {
                 let terrain = grid.cell(x, y).unwrap_or(&Terrain::Air);
@@ -139,6 +155,8 @@ fn visualize_grid(grid: &UniformGrid<Terrain>) {
     }
 }
 
+// Adds a path of rock to the grid
+#[allow(clippy::cast_sign_loss)]
 fn add_rock_path(grid: &mut UniformGrid<Terrain>, path: &ScanTrace) {
     if path.points.is_empty() {
         return;
@@ -147,24 +165,24 @@ fn add_rock_path(grid: &mut UniformGrid<Terrain>, path: &ScanTrace) {
     let mut points = VecDeque::from(path.points.clone());
     let start_point = points.pop_front().unwrap();
 
-    let mut x = start_point.x;
-    let mut y = start_point.y;
+    let mut x = start_point.x as usize;
+    let mut y = start_point.y as usize;
 
     while let Some(next_point) = points.pop_front() {
-        grid.set_cell(x as usize, y as usize, Terrain::Rock);
+        grid.set_cell(x, y, Terrain::Rock);
 
-        while x != next_point.x {
-            grid.set_cell(x as usize, y as usize, Terrain::Rock);
-            if next_point.x > x {
+        while x != next_point.x as usize {
+            grid.set_cell(x, y, Terrain::Rock);
+            if x < next_point.x as usize {
                 x += 1;
             } else {
                 x -= 1;
             }
         }
 
-        while y != next_point.y {
-            grid.set_cell(x as usize, y as usize, Terrain::Rock);
-            if next_point.y > y {
+        while y != next_point.y as usize {
+            grid.set_cell(x, y, Terrain::Rock);
+            if y < next_point.y as usize {
                 y += 1;
             } else {
                 y -= 1;
@@ -172,5 +190,55 @@ fn add_rock_path(grid: &mut UniformGrid<Terrain>, path: &ScanTrace) {
         }
     }
 
-    grid.set_cell(x as usize, y as usize, Terrain::Rock);
+    grid.set_cell(x, y, Terrain::Rock);
+}
+
+// Tries to place a piece of stand in the grid, returning the settled position (if possible)
+#[allow(clippy::cast_sign_loss)]
+fn try_place_sand(grid: &UniformGrid<Terrain>, initial: Point) -> Option<Point> {
+    let mut x = initial.x as usize;
+    let mut y = initial.y as usize;
+
+    loop {
+        // Try to fall downwards one space
+        let down = grid.cell(x, y + 1);
+        if let Some(terrain) = down {
+            if *terrain == Terrain::Air {
+                y += 1;
+                continue;
+            }
+        } else {
+            return None;
+        }
+
+        // Try to fall to the down-left one space
+        let down_left = grid.cell(x - 1, y + 1);
+        if let Some(terrain) = down_left {
+            if *terrain == Terrain::Air {
+                x -= 1;
+                y += 1;
+                continue;
+            }
+        } else {
+            return None;
+        }
+
+        // Try to fall to the down-right one space
+        let down_right = grid.cell(x + 1, y + 1);
+        if let Some(terrain) = down_right {
+            if *terrain == Terrain::Air {
+                x += 1;
+                y += 1;
+                continue;
+            }
+        } else {
+            return None;
+        }
+
+        // We have settled here, unable to fall further
+        return Some(Point::new(
+            i32::try_from(x).unwrap(),
+            i32::try_from(y).unwrap(),
+        ));
+    }
 }
