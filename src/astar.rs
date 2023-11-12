@@ -5,7 +5,7 @@ use std::fmt::{Display, Formatter};
 // Represents each cardinal direction as a x/y tile offset
 const DIRECTIONS: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Point {
     pub x: i32,
     pub y: i32,
@@ -13,7 +13,7 @@ pub struct Point {
 
 impl Point {
     #[must_use]
-    pub fn from_pos(x: i32, y: i32) -> Self {
+    pub fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }
 }
@@ -94,7 +94,7 @@ where
 
         // Continue searching in all directions
         for offset in &DIRECTIONS {
-            let neighbor = Point::from_pos(current_point.x + offset.0, current_point.y + offset.1);
+            let neighbor = Point::new(current_point.x + offset.0, current_point.y + offset.1);
 
             if let Some(tile_cost) = cost_func(&current_point, &neighbor) {
                 let g_score = g_scores[&current_point] + tile_cost;

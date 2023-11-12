@@ -20,11 +20,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Get the start and goal locations (S -> E)
     let start = match grid.find(|val| val == &Terrain::StartLocation) {
-        Some((x, y)) => Point::from_pos(x as i32, y as i32),
+        Some((x, y)) => Point::new(i32::try_from(x).unwrap(), i32::try_from(y).unwrap()),
         None => panic!("Unable to find start location!"),
     };
     let goal = match grid.find(|val| val == &Terrain::Goal) {
-        Some((x, y)) => Point::from_pos(x as i32, y as i32),
+        Some((x, y)) => Point::new(i32::try_from(x).unwrap(), i32::try_from(y).unwrap()),
         None => panic!("Unable to find goal location!"),
     };
 
@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let possible_starts: Vec<Point> = grid
         .find_all(|val| matches!(val, Terrain::StartLocation | Terrain::Height(1)))
         .iter()
-        .map(|(x, y)| Point::from_pos(*x as i32, *y as i32))
+        .map(|(x, y)| Point::new(i32::try_from(*x).unwrap(), i32::try_from(*y).unwrap()))
         .collect();
 
     // Determine the best (shortest) path from any start location (part 2)
@@ -70,6 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 // Calculate the movement cost from one space to another (or None if impossible move)
+#[allow(clippy::cast_sign_loss)]
 fn calc_move_cost(grid: &RowGrid<Terrain>, from: Point, to: Point) -> Option<u32> {
     // Out of bounds
     if to.x < 0 || to.y < 0 {
@@ -80,7 +81,7 @@ fn calc_move_cost(grid: &RowGrid<Terrain>, from: Point, to: Point) -> Option<u32
     let neighbor_height = match grid.cell(to.x as usize, to.y as usize) {
         // The goal is always considered the 'z' height (letter 26)
         Some(Terrain::Goal) => 26,
-        Some(Terrain::Height(height)) => *height as i32,
+        Some(Terrain::Height(height)) => i32::from(*height),
         _ => return None,
     };
 
@@ -88,7 +89,7 @@ fn calc_move_cost(grid: &RowGrid<Terrain>, from: Point, to: Point) -> Option<u32
     let this_height = match grid.cell(from.x as usize, from.y as usize) {
         // The start is always considered the 'a' height (letter 1)
         Some(Terrain::StartLocation) => 1,
-        Some(Terrain::Height(height)) => *height as i32,
+        Some(Terrain::Height(height)) => i32::from(*height),
         _ => return None,
     };
 
@@ -102,6 +103,7 @@ fn calc_move_cost(grid: &RowGrid<Terrain>, from: Point, to: Point) -> Option<u32
 
 // Visualizes the path taken on the grid, useful for debugging
 #[allow(dead_code)]
+#[allow(clippy::cast_sign_loss)]
 fn visualize_path(path: &[Point], width: usize, height: usize) {
     let mut cells = vec!['_'; width * height];
 
@@ -126,9 +128,9 @@ fn visualize_path(path: &[Point], width: usize, height: usize) {
 
     for y in 0..height {
         for x in 0..width {
-            print!("[{}]", cells[y * width + x])
+            print!("[{}]", cells[y * width + x]);
         }
-        println!()
+        println!();
     }
 }
 

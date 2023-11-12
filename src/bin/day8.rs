@@ -61,7 +61,7 @@ fn read_tree_grid(reader: &mut impl BufRead) -> RowGrid<u8> {
 // Determines if a tree is visible at the x/y location within the grid
 fn is_tree_visible(grid: &RowGrid<u8>, x: usize, y: usize) -> bool {
     // Assume any perimeter tree is visible
-    if x == 0 || x >= grid.width - 1 {
+    if x == 0 || x >= grid.width() - 1 {
         return true;
     }
     if y == 0 || y >= grid.height() - 1 {
@@ -106,7 +106,7 @@ fn calc_scenic_score(grid: &RowGrid<u8>, x: usize, y: usize) -> u32 {
     };
 
     let height = grid.height();
-    let width = grid.width;
+    let width = grid.width();
 
     // Walk from tree to left edge to determine the left-side score
     let mut left_score: u32 = 0;
