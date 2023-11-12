@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Cursor};
 
 // Potentially recursive data structure, as lists can contain lists
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq)]
 enum PacketData {
     Integer(i32),
     List(Vec<PacketData>),
@@ -33,13 +33,21 @@ impl Display for PacketData {
     }
 }
 
-// Pair of left and right packets to compare against
-#[derive(Debug)]
-struct PacketPair(PacketData, PacketData);
+impl PartialEq for PacketData {
+    fn eq(&self, other: &Self) -> bool {
+        compare_packets(self, other) == Ordering::Equal
+    }
+}
 
-impl Display for PacketPair {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}\n{}", self.0, self.1)
+impl Ord for PacketData {
+    fn cmp(&self, other: &Self) -> Ordering {
+        compare_packets(self, other)
+    }
+}
+
+impl PartialOrd for PacketData {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -47,57 +55,82 @@ fn main() -> Result<(), Box<dyn Error>> {
     let file = File::open("data/day13_input.txt")?;
     let mut reader = BufReader::new(file);
 
-    let pairs = read_packet_pairs(&mut reader);
-    let mut correct_indices: Vec<u64> = Vec::with_capacity(1000);
+    let mut packets = read_packets(&mut reader);
+    let mut correct_indices: Vec<usize> = Vec::with_capacity(1000);
 
-    for (index, pair) in pairs.iter().enumerate() {
-        println!("== Pair {} == ", index + 1);
-        if is_correct_order(&pair.0, &pair.1, None).unwrap_or_default() {
-            correct_indices.push((index + 1) as u64);
+    // Display the evaluation of each packet pair
+    for (index, packet) in packets.iter().step_by(2).enumerate() {
+        let next_packet = packets.get(index + 1).unwrap();
+        let pair_number = (index / 2) + 1;
+
+        println!("== Pair {pair_number} == ",);
+        if is_correct_order(packet, next_packet, None).unwrap_or_default() {
+            correct_indices.push(pair_number);
         }
     }
     println!();
 
+    // Add the divider packets (will have to locate these after sorting)
+    let divider_packet_2 = PacketData::List(vec![PacketData::List(vec![PacketData::Integer(2)])]);
+    let divider_packet_6 = PacketData::List(vec![PacketData::List(vec![PacketData::Integer(6)])]);
+
+    packets.push(divider_packet_2.clone());
+    packets.push(divider_packet_6.clone());
+
+    // Sort the packets using our `PartialOrd` and `Ord` implementations
+    packets.sort();
+
+    for packet in &packets {
+        println!("{packet}");
+    }
+    println!();
+
     // Sum all of the correct indices (part 1)
-    let part1_sum: u64 = correct_indices.iter().sum();
+    let part1_sum: usize = correct_indices.iter().sum();
     println!("[Part I] The sum of the correct indices is {part1_sum}");
+
+    // Find the divider packet indices for decoder key (part 2)
+    let (divider_index_2, _) = &packets
+        .iter()
+        .enumerate()
+        .find(|&(_, packet)| packet == &divider_packet_2)
+        .expect("Unable to find divider packet [[2]] in list");
+
+    let (divider_index_6, _) = &packets
+        .iter()
+        .enumerate()
+        .find(|&(_, packet)| packet == &divider_packet_6)
+        .expect("Unable to find divider packet [[6]] in list");
+
+    let decoder_key = (divider_index_2 + 1) * (divider_index_6 + 1);
+    println!("[Part II] The decoder key is {decoder_key}",);
     Ok(())
 }
 
-// Attempts to read all the packet pairs from the input file
-fn read_packet_pairs(reader: &mut impl BufRead) -> Vec<PacketPair> {
-    let mut pairs: Vec<PacketPair> = Vec::with_capacity(1000);
-    let mut lines: Vec<String> = vec![];
+// Attempts to read all the packet from the input file
+fn read_packets(reader: &mut impl BufRead) -> Vec<PacketData> {
+    let mut packets: Vec<PacketData> = Vec::with_capacity(1000);
 
-    // Read each line as a pair, starting a new pair when we reach an empty line
+    // Read each line as a packet, skipping empty lines
     for line in reader.lines() {
-        match line {
+        let line = match line {
             Ok(line) if line.is_empty() => {
-                lines.clear();
                 continue;
             }
-            Ok(line) => lines.push(line),
+            Ok(line) => line,
             Err(_) => break,
         };
 
-        // Need at least two lines to form the pair
-        if lines.len() < 2 {
-            continue;
-        }
-
-        // Attempt to parse the left/right packet pair
-        let left_packet = parse_packet_line(&lines[0]);
-        let right_packet = parse_packet_line(&lines[1]);
-
+        // Attempt to parse the packet
         // If successful, add to the list of pairs otherwise output an error
-        match (left_packet, right_packet) {
-            (Some(left), Some(right)) => pairs.push(PacketPair(left, right)),
-            (None, _) => println!("Invalid left packet: {}", &lines[0]),
-            (_, None) => println!("Invalid right packet: {}", &lines[1]),
+        if let Some(packet) = parse_packet_line(&line) {
+            packets.push(packet);
+        } else {
+            println!("Invalid left packet: {line}");
         }
     }
 
-    pairs
+    packets
 }
 
 // Attempts to parse the line as packet data, returning None if unable to parse
@@ -198,6 +231,7 @@ fn read_packet_integer(reader: &mut impl BufRead) -> Option<PacketData> {
 }
 
 // Compares two packet data items and determines if they are in the right order
+// Very similar to the compare_packets implementation but has additional output for debugging
 fn is_correct_order(left: &PacketData, right: &PacketData, indent: Option<usize>) -> Option<bool> {
     let indent_size = indent.unwrap_or_default();
     let indent = " ".repeat(indent_size);
@@ -261,6 +295,44 @@ fn is_correct_order(left: &PacketData, right: &PacketData, indent: Option<usize>
             println!("{indent_more}- Mixed types; convert right to [{value}] and retry comparison");
             let right = PacketData::List(vec![right.clone()]);
             is_correct_order(left, &right, Some(indent_size + 2))
+        }
+    }
+}
+
+// Compares packets and returns their relative ordering
+fn compare_packets(left: &PacketData, right: &PacketData) -> Ordering {
+    match (left, right) {
+        // Two lists, compare recursively
+        (PacketData::List(left_items), PacketData::List(right_items)) => {
+            // Convert into queue since we need to pop from the front
+            let mut left_items = VecDeque::from(left_items.clone());
+            let mut right_items = VecDeque::from(right_items.clone());
+
+            loop {
+                match (left_items.pop_front(), right_items.pop_front()) {
+                    (Some(left), Some(right)) => {
+                        let result = compare_packets(&left, &right);
+                        if result != Ordering::Equal {
+                            return result;
+                        }
+                    }
+                    (None, None) => return Ordering::Equal,
+                    (None, _) => return Ordering::Less,
+                    (_, None) => return Ordering::Greater,
+                }
+            }
+        }
+        // Two numbers, compare their values
+        (PacketData::Integer(left), PacketData::Integer(right)) => left.cmp(right),
+        // The left side is an integer, right side is a list -- convert left to list and retry
+        (PacketData::Integer(_), PacketData::List(_)) => {
+            let left = PacketData::List(vec![left.clone()]);
+            compare_packets(&left, right)
+        }
+        // The left side is a list, right side is an integer -- convert right to list and retry
+        (PacketData::List(_), PacketData::Integer(_)) => {
+            let right = PacketData::List(vec![right.clone()]);
+            compare_packets(left, &right)
         }
     }
 }
