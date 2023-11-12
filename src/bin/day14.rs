@@ -59,21 +59,40 @@ fn main() -> Result<(), Box<dyn Error>> {
         add_rock_path(&mut terrain_grid, scan_trace);
     }
 
-    // Attempt to spawn sand until it cannot settle any longer
-    let mut sand_count: usize = 0;
+    // Make a copy of the grid for part 2
+    let mut terrain_grid_with_floor = terrain_grid.clone();
+    add_rock_floor(&mut terrain_grid_with_floor);
+
+    // Attempt to spawn sand until it cannot settle any longer (part 1)
+    let mut sand_count_p1: usize = 0;
     while let Some(point) = try_place_sand(&terrain_grid, Point::new(SAND_SPAWN_X, SAND_SPAWN_Y)) {
         terrain_grid.set_cell(point.x as usize, point.y as usize, Terrain::Sand);
-        sand_count += 1;
+        sand_count_p1 += 1;
+    }
+
+    // Attempt to spawn sand until it cannot settle any longer (part 2)
+    let mut sand_count_p2: usize = 0;
+    while let Some(point) = try_place_sand(
+        &terrain_grid_with_floor,
+        Point::new(SAND_SPAWN_X, SAND_SPAWN_Y),
+    ) {
+        terrain_grid_with_floor.set_cell(point.x as usize, point.y as usize, Terrain::Sand);
+        sand_count_p2 += 1;
     }
 
     // Visualize the terrain grid for debugging
-    println!("Terrain Grid");
+    println!("Terrain Grid (Part I)");
     println!("{}", "-".repeat(60));
     visualize_grid(&terrain_grid);
     println!();
 
     // Display how many sand units had fallen (part 1)
-    println!("[Part I] There were {sand_count} units of sand that fell");
+    println!(
+        "[Part I] There were {sand_count_p1} units of sand that settled before falling into the abyss"
+    );
+
+    // Display how many sand units had fallen (part 2)
+    println!("[Part II] There were {sand_count_p2} units of sand that settled before blocking the sand spawn");
     Ok(())
 }
 
@@ -193,11 +212,40 @@ fn add_rock_path(grid: &mut UniformGrid<Terrain>, path: &ScanTrace) {
     grid.set_cell(x, y, Terrain::Rock);
 }
 
+// Add the rock floor, where the floor is 2 greater than the highest Y point
+fn add_rock_floor(grid: &mut UniformGrid<Terrain>) {
+    let floor_y = grid
+        .find_all(|terrain| *terrain == Terrain::Rock)
+        .iter()
+        .map(|&(_, y)| y)
+        .max()
+        .unwrap_or_default()
+        + 2;
+
+    let floor_left = Point::new(0, i32::try_from(floor_y).unwrap());
+    let floor_right = Point::new(
+        i32::try_from(grid.width()).unwrap(),
+        i32::try_from(floor_y).unwrap(),
+    );
+
+    add_rock_path(
+        grid,
+        &ScanTrace {
+            points: vec![floor_left, floor_right],
+        },
+    );
+}
+
 // Tries to place a piece of stand in the grid, returning the settled position (if possible)
 #[allow(clippy::cast_sign_loss)]
 fn try_place_sand(grid: &UniformGrid<Terrain>, initial: Point) -> Option<Point> {
     let mut x = initial.x as usize;
     let mut y = initial.y as usize;
+
+    // If the initial is sand, it is entirely blocked
+    if grid.cell(x, y).unwrap_or(&Terrain::Air) == &Terrain::Sand {
+        return None;
+    }
 
     loop {
         // Try to fall downwards one space

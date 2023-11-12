@@ -114,7 +114,7 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UniformGrid<T> {
     width: usize,
     height: usize,
