@@ -90,16 +90,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("[Part I] The sum of the correct indices is {part1_sum}");
 
     // Find the divider packet indices for decoder key (part 2)
-    let (divider_index_2, _) = &packets
+    let divider_index_2 = &packets
         .iter()
-        .enumerate()
-        .find(|&(_, packet)| packet == &divider_packet_2)
+        .position(|packet| packet == &divider_packet_2)
         .expect("Unable to find divider packet [[2]] in list");
 
-    let (divider_index_6, _) = &packets
+    let divider_index_6 = &packets
         .iter()
-        .enumerate()
-        .find(|&(_, packet)| packet == &divider_packet_6)
+        .position(|packet| packet == &divider_packet_6)
         .expect("Unable to find divider packet [[6]] in list");
 
     let decoder_key = (divider_index_2 + 1) * (divider_index_6 + 1);
