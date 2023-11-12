@@ -31,3 +31,8 @@ Ex: `data/day1_input.txt`
 ## 1️⃣ + 2️⃣ Solutions
 
 Solutions for both `Part I` and `Part II` are included within each day folder.
+
+## 👨🏻‍🎨 Code Style
+
+This repository uses `clippy` and `rustfmt` for code style and linting.
+The `pedantic` ruleset is used to enforce best practices.
