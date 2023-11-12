@@ -3,7 +3,7 @@
 
 #[derive(Debug)]
 pub struct RowGrid<T> {
-    pub width: usize,
+    width: usize,
     cells: Vec<T>,
 }
 
@@ -17,6 +17,11 @@ where
             width,
             cells: Vec::new(),
         }
+    }
+
+    #[must_use]
+    pub fn width(&self) -> usize {
+        self.width
     }
 
     #[must_use]
@@ -106,5 +111,45 @@ where
         } else {
             panic!("Row length does not match grid width of {}!", self.width);
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct UniformGrid<T> {
+    width: usize,
+    height: usize,
+    cells: Vec<T>,
+}
+
+impl<T> UniformGrid<T>
+where
+    T: Clone + Default,
+{
+    #[must_use]
+    pub fn new(width: usize, height: usize) -> Self {
+        UniformGrid {
+            width,
+            height,
+            cells: vec![T::default(); width * height],
+        }
+    }
+
+    #[must_use]
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    #[must_use]
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    #[must_use]
+    pub fn cell(&self, x: usize, y: usize) -> Option<&T> {
+        self.cells.get(y * self.width + x)
+    }
+
+    pub fn set_cell(&mut self, x: usize, y: usize, value: T) {
+        self.cells[y * self.width + x] = value;
     }
 }

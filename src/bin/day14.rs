@@ -1,11 +1,13 @@
-use advent_of_rust_2022::Point;
+use advent_of_rust_2022::{Point, UniformGrid};
+use std::collections::VecDeque;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-#[derive(Debug)]
+#[derive(Clone, Default)]
 enum Terrain {
+    #[default]
     Air,
     Rock,
     Sand,
@@ -22,7 +24,6 @@ impl Display for Terrain {
     }
 }
 
-#[derive(Debug, Default)]
 struct ScanTrace {
     pub points: Vec<Point>,
 }
@@ -43,10 +44,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let file = File::open("data/day14_input_example.txt")?;
     let mut reader = BufReader::new(file);
 
+    // Load all the scan traces from input file
     let scan_traces = read_scan_traces(&mut reader);
 
+    // Add all of the traces as rock paths to the 2D terrain grid
+    let mut terrain_grid: UniformGrid<Terrain> = UniformGrid::new(1000, 20);
     for scan_trace in &scan_traces {
-        println!("{scan_trace}");
+        add_rock_path(&mut terrain_grid, scan_trace);
     }
 
     Ok(())
@@ -82,7 +86,7 @@ fn read_scan_traces(reader: &mut impl BufRead) -> Vec<ScanTrace> {
                     .parse()
                     .unwrap_or_else(|_| panic!("Invalid Y coordinate: {y}"));
 
-                Point::from_pos(x, y)
+                Point::new(x, y)
             })
             .collect();
 
@@ -90,4 +94,18 @@ fn read_scan_traces(reader: &mut impl BufRead) -> Vec<ScanTrace> {
     }
 
     scans
+}
+
+fn add_rock_path(grid: &mut UniformGrid<Terrain>, path: &ScanTrace) {
+    if path.points.is_empty() {
+        return;
+    }
+
+    let mut points = VecDeque::from(path.points.clone());
+    let start_point = points.pop_front().unwrap();
+
+    let mut x = start_point.x;
+    let mut y = start_point.y;
+
+    while let Some(next_point) = points.pop_front() {}
 }
